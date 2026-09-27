@@ -1,4 +1,4 @@
-# OmniTransit — Stuttgart trip search (v1)
+# AllRide — Stuttgart trip search (v1)
 
 A mobile-first web app that finds the best way across Stuttgart by comparing ride-hailing, public transit, and e-scooters side by side. Everything runs on realistic built-in demo data, so the whole flow works immediately with no provider accounts.
 
@@ -14,6 +14,7 @@ A mobile-first web app that finds the best way across Stuttgart by comparing rid
 ## Design direction
 
 Apple-clean typographic base with Wolt-style vibrant accents:
+
 - Frosted translucent sheets over the map, generous negative space, strong type hierarchy.
 - Spring-physics bottom sheet with snap points (peek / half / full), dragged on mobile and docked as a right-hand pane on desktop.
 - Provider-branded colors on markers and route lines; walk segments dotted grey, scooter solid vibrant, transit thick branded lines.
