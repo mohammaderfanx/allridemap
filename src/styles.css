@@ -142,3 +142,26 @@
     color: var(--color-foreground);
   }
 }
+
+:root {
+  --brand-uber: #111827;
+  --brand-bolt: #2fbe62;
+  --brand-freenow: #f43f5e;
+  --brand-taxi: #f2b705;
+  --brand-lime: #5bd63a;
+  --brand-tier: #2f3ae0;
+  --brand-voi: #f0503c;
+  --brand-dott: #1f2b6c;
+  --brand-bike: #e8384f;
+  --brand-transit: #0a58a8;
+  --brand-walk: #8e8e93;
+  --primary: oklch(0.6 0.19 245);
+  --primary-foreground: oklch(0.99 0 0);
+  --frost: oklch(1 0 0 / 0.82);
+  --shadow-sheet: 0 -8px 40px -12px oklch(0.2 0.03 260 / 0.25);
+}
+@theme inline {
+  --color-frost: var(--frost);
+  --shadow-sheet: var(--shadow-sheet);
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+}
