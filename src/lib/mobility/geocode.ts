@@ -28,7 +28,7 @@ export async function searchPlaces(q: string, signal?: AbortSignal): Promise<Pla
   if (term.length < 3) return local;
   try {
     const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lat=48.7784&lon=9.1794&limit=6&bbox=8.95,48.62,9.42,48.9`;
-    const res = await fetch(url, { signal });
+    const res = await fetch(url, { signal: signal ?? null });
     const json = (await res.json()) as { features: PhotonFeature[] };
     const remote = json.features.map(featureToPlace).filter((p): p is Place => !!p);
     return [...local, ...remote].slice(0, 7);
