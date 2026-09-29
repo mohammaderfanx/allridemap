@@ -60,5 +60,18 @@ export const PLACES: Place[] = [
 ];
 
 export function placeById(id: string): Place | undefined {
+  if (id.startsWith("geo:")) {
+    const [lat, lng, ...rest] = id.slice(4).split(",");
+    const la = Number(lat);
+    const ln = Number(lng);
+    if (!Number.isFinite(la) || !Number.isFinite(ln)) return undefined;
+    let name = rest.join(",");
+    try {
+      name = decodeURIComponent(name);
+    } catch {
+      /* keep raw */
+    }
+    return { id, name: name || "Dropped pin", district: "Stuttgart", lat: la, lng: ln };
+  }
   return PLACES.find((p) => p.id === id);
 }
