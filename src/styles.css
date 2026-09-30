@@ -165,3 +165,8 @@
   --shadow-sheet: var(--shadow-sheet);
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
 }
+
+.dark {
+  --frost: oklch(0.22 0.015 260 / 0.8);
+  --shadow-sheet: 0 -8px 40px -12px oklch(0 0 0 / 0.6);
+}

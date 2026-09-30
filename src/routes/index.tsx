@@ -1,10 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { ArrowUpDown, ChevronRight, Info, MapPin, Star } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowUpDown, ChevronRight, Info, MapPin, Moon, Search, Star, Sun } from "lucide-react";
+import { searchPlaces, reversePlace } from "@/lib/mobility/geocode";
+import { setDark, useIsDark } from "@/lib/theme";
+import type { Place } from "@/lib/mobility/geo";
 import { CityMap } from "@/components/map/CityMap";
-import { ProviderBadge } from "@/components/trip/ProviderBadge";
+import { ModeIcon, ProviderBadge } from "@/components/trip/ProviderBadge";
 import { buildOptions, formatDuration, generateFleet, rankOptions, type SortKey } from "@/lib/mobility/engine";
-import { PLACES, distanceM, placeById, type LatLng } from "@/lib/mobility/geo";
+import { PLACES, placeById, type LatLng } from "@/lib/mobility/geo";
 import { MODE_LABEL, PROVIDERS, type Mode } from "@/lib/mobility/providers";
 import { ALL_MODES, parseModes, searchSchema, useTick } from "@/lib/mobility/search";
 
@@ -54,9 +57,9 @@ function Home() {
 
   const onPickPoint = (p: LatLng) => {
     if (!picking) return;
-    const nearest = [...PLACES].sort((a, b) => distanceM(a, p) - distanceM(b, p))[0]!;
-    set({ [picking]: nearest.id });
+    const which = picking;
     setPicking(null);
+    reversePlace(p.lat, p.lng).then((pl) => set({ [which]: pl.id }));
   };
 
   const toggleMode = (m: Mode) => {
@@ -64,6 +67,7 @@ function Home() {
     set({ modes: next.length === ALL_MODES.length || !next.length ? undefined : next.join(",") });
   };
 
+  const dark = useIsDark();
   const cheapest = options.length ? Math.min(...options.map((o) => o.price ?? 99)) : 0;
   const fastest = options.length ? Math.min(...options.map((o) => o.durationMin)) : 0;
 
@@ -86,14 +90,19 @@ function Home() {
             <span className="text-lg font-extrabold tracking-tight text-foreground">
               All<span className="text-primary">Ride</span>
             </span>
-            <Link to="/about" className="text-muted-foreground hover:text-foreground" aria-label="About">
-              <Info className="h-4 w-4" />
-            </Link>
+            <div className="flex items-center gap-3">
+              <button onClick={() => setDark(!dark)} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"} className="text-muted-foreground hover:text-foreground">
+                {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+              <Link to="/about" className="text-muted-foreground hover:text-foreground" aria-label="About">
+                <Info className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex-1 space-y-1.5">
-              <PlaceSelect label="From" value={from} onChange={(v) => set({ from: v })} onMap={() => setPicking("from")} picking={picking === "from"} />
-              <PlaceSelect label="To" value={to ?? ""} onChange={(v) => set({ to: v || undefined })} onMap={() => setPicking("to")} picking={picking === "to"} />
+              <PlaceInput label="From" place={origin} placeholder="Start address" onSelect={(p) => set({ from: p.id })} onMap={() => setPicking("from")} picking={picking === "from"} />
+              <PlaceInput label="To" place={dest} placeholder="Where to?" onSelect={(p) => set({ to: p.id })} onMap={() => setPicking("to")} picking={picking === "to"} />
             </div>
             <button
               aria-label="Swap"
@@ -130,10 +139,11 @@ function Home() {
               <button
                 key={m}
                 onClick={() => toggleMode(m)}
-                className={`whitespace-nowrap rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                className={`flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
                   modes.includes(m) ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"
                 }`}
               >
+                <ModeIcon mode={m} className="h-3.5 w-3.5" />
                 {MODE_LABEL[m]}
               </button>
             ))}
@@ -225,38 +235,80 @@ function Tag({ children }: { children: React.ReactNode }) {
   return <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">{children}</span>;
 }
 
-function PlaceSelect({
+function PlaceInput({
   label,
-  value,
-  onChange,
+  place,
+  placeholder,
+  onSelect,
   onMap,
   picking,
 }: {
   label: string;
-  value: string;
-  onChange: (v: string) => void;
+  place: Place | undefined;
+  placeholder: string;
+  onSelect: (p: Place) => void;
   onMap: () => void;
   picking: boolean;
 }) {
+  const [q, setQ] = useState(place?.name ?? "");
+  const [focus, setFocus] = useState(false);
+  const [results, setResults] = useState<Place[]>([]);
+  useEffect(() => setQ(place?.name ?? ""), [place?.id]);
+  useEffect(() => {
+    if (!focus) return;
+    const ctl = new AbortController();
+    const t = setTimeout(async () => setResults(await searchPlaces(q === place?.name ? "" : q, ctl.signal)), 220);
+    return () => {
+      clearTimeout(t);
+      ctl.abort();
+    };
+  }, [q, focus]);
   return (
-    <div className={`flex items-center gap-2 rounded-xl bg-muted px-3 py-2 ${picking ? "ring-2 ring-primary" : ""}`}>
-      <span className="w-8 text-[11px] font-bold uppercase text-muted-foreground">{label}</span>
-      <select
-        aria-label={label}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-foreground outline-none"
-      >
-        {!value && <option value="">Choose destination</option>}
-        {PLACES.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name}
-          </option>
-        ))}
-      </select>
-      <button onClick={onMap} aria-label={`Pick ${label} on map`} className="text-muted-foreground hover:text-primary">
-        <MapPin className="h-4 w-4" />
-      </button>
+    <div className="relative">
+      <div className={`flex items-center gap-2 rounded-xl bg-muted px-3 py-2 ${picking || focus ? "ring-2 ring-primary" : ""}`}>
+        <span className="w-8 text-[11px] font-bold uppercase text-muted-foreground">{label}</span>
+        <input
+          aria-label={label}
+          value={q}
+          placeholder={placeholder}
+          onChange={(e) => setQ(e.target.value)}
+          onFocus={(e) => {
+            setFocus(true);
+            e.target.select();
+          }}
+          onBlur={() => {
+            setFocus(false);
+            setQ(place?.name ?? "");
+          }}
+          className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground"
+        />
+        <button onClick={onMap} aria-label={`Pick ${label} on map`} className="text-muted-foreground hover:text-primary">
+          <MapPin className="h-4 w-4" />
+        </button>
+      </div>
+      {focus && results.length > 0 && (
+        <ul className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-2xl border border-border bg-popover shadow-lg">
+          {results.map((r) => (
+            <li key={r.id}>
+              <button
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onSelect(r);
+                  setQ(r.name);
+                  (document.activeElement as HTMLElement | null)?.blur();
+                }}
+                className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-accent"
+              >
+                <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold text-popover-foreground">{r.name}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{r.district}</span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
