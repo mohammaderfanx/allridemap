@@ -86,7 +86,7 @@ export function useRoadSegments(segments: Segment[] | undefined, altIndex: numbe
     };
   }, [key, altIndex]);
 
-  if (!segments?.length) return { segments: undefined, alternatives: [] as RoadRoute[], mainIndex: 0 };
+  if (!segments?.length) return { segments: undefined, alternatives: [] as RoadRoute[], mainIndex: 0, ready: false };
   const ready = state?.key === key;
-  return { segments: ready ? state.segs : segments, alternatives: ready ? state.alts : [], mainIndex: mainSegmentIndex(segments) };
+  return { segments: ready ? state.segs : segments, alternatives: ready ? state.alts : [], mainIndex: mainSegmentIndex(segments), ready };
 }
