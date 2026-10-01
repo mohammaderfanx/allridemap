@@ -92,6 +92,10 @@ function polyline(a: LatLng, b: LatLng, seed: string, bend = 1): LatLng[] {
   const off = (r() - 0.5) * 0.006 * bend;
   for (let i = 0; i <= steps; i++) {
     const t = i / steps;
+    if (i === 0 || i === steps) {
+      pts.push(i === 0 ? { lat: a.lat, lng: a.lng } : { lat: b.lat, lng: b.lng });
+      continue;
+    }
     const p = lerp(a, b, t);
     const k = Math.sin(t * Math.PI);
     pts.push({
@@ -110,6 +114,8 @@ export type Segment = {
   durationMin: number;
   distanceM: number;
   path: LatLng[];
+  /** key waypoints the street router must pass through */
+  via: LatLng[];
 };
 
 export type TripOption = {
@@ -152,14 +158,17 @@ const TRANSIT_LINES = [
   { code: "Bus 42", kind: "Bus", color: "--line-bus" },
 ];
 
-export function buildOptions(originId: string, destId: string, tick = 0): TripOption[] {
+export function buildOptions(originId: string, destId: string, tick = 0, stopIds: string[] = []): TripOption[] {
   const origin = placeById(originId);
   const dest = placeById(destId);
   if (!origin || !dest || origin.id === dest.id) return [];
+  const stops = stopIds.map(placeById).filter((p): p is Place => !!p);
+  const waypoints: LatLng[] = [origin, ...stops, dest];
 
-  const straight = distanceM(origin, dest);
+  let straight = 0;
+  for (let i = 1; i < waypoints.length; i++) straight += distanceM(waypoints[i - 1]!, waypoints[i]!);
   const options: TripOption[] = [];
-  const key = `${origin.id}>${dest.id}`;
+  const key = `${origin.id}>${stops.map((s) => s.id).join(">")}${stops.length ? ">" : ""}${dest.id}`;
 
   /* --- Walking ------------------------------------------------------ */
   const walkDist = straight * 1.22;
@@ -186,6 +195,7 @@ export function buildOptions(originId: string, destId: string, tick = 0): TripOp
           detail: `${(walkDist / 1000).toFixed(1)} km on foot`,
           durationMin: dur,
           distanceM: Math.round(walkDist),
+          via: [],
           path: polyline(origin, dest, `walk-${key}`, 0.5),
         },
       ],
@@ -224,6 +234,7 @@ export function buildOptions(originId: string, destId: string, tick = 0): TripOp
           detail: `${pickupWalk} m`,
           durationMin: 1,
           distanceM: pickupWalk,
+          via: [],
           path: polyline(origin, lerp(origin, dest, 0.04), `pw-${providerId}-${key}`, 0.3),
         },
         {
@@ -233,6 +244,7 @@ export function buildOptions(originId: string, destId: string, tick = 0): TripOp
           detail: `${(dist / 1000).toFixed(1)} km${surge > 1.25 ? ` · ${surge.toFixed(1)}× surge` : ""}`,
           durationMin: ride,
           distanceM: Math.round(dist),
+          via: [],
           path: polyline(origin, dest, `ride-${providerId}-${key}`, 1),
         },
       ],
@@ -273,7 +285,8 @@ export function buildOptions(originId: string, destId: string, tick = 0): TripOp
             detail: `${walkToVehicle} m`,
             durationMin: walkMin,
             distanceM: walkToVehicle,
-            path: polyline(origin, lerp(origin, dest, 0.07), `mv-${providerId}-${key}`, 0.4),
+            via: [],
+          path: polyline(origin, lerp(origin, dest, 0.07), `mv-${providerId}-${key}`, 0.4),
           },
           {
             mode: p.mode,
@@ -282,7 +295,8 @@ export function buildOptions(originId: string, destId: string, tick = 0): TripOp
             detail: `${(dist / 1000).toFixed(1)} km · ${p.unlockLabel ?? ""}`.trim(),
             durationMin: rideMin,
             distanceM: Math.round(dist),
-            path: polyline(origin, dest, `sc-${providerId}-${key}`, 0.8),
+            via: [],
+          path: polyline(origin, dest, `sc-${providerId}-${key}`, 0.8),
           },
         ],
         deepLink: deepLink(providerId, { ...origin }, { ...dest }),
@@ -325,6 +339,7 @@ export function buildOptions(originId: string, destId: string, tick = 0): TripOp
           detail: `${accessWalk} m`,
           durationMin: w1,
           distanceM: accessWalk,
+          via: [],
           path: polyline(origin, lerp(origin, mid, 0.18), `tw1-${line.code}-${key}`, 0.4),
         },
         {
@@ -334,6 +349,7 @@ export function buildOptions(originId: string, destId: string, tick = 0): TripOp
           detail: `${stops} stops${v === 1 ? " · 1 transfer" : ""}`,
           durationMin: rideMin,
           distanceM: Math.round(straight * 1.15),
+          via: [],
           path: polyline(lerp(origin, mid, 0.18), lerp(mid, dest, 0.82), `tr-${line.code}-${key}`, 0.6),
         },
         {
@@ -343,6 +359,7 @@ export function buildOptions(originId: string, destId: string, tick = 0): TripOp
           detail: `${egressWalk} m`,
           durationMin: w2,
           distanceM: egressWalk,
+          via: [],
           path: polyline(lerp(mid, dest, 0.82), dest, `tw2-${line.code}-${key}`, 0.4),
         },
       ],
@@ -350,6 +367,16 @@ export function buildOptions(originId: string, destId: string, tick = 0): TripOp
     });
   }
 
+  // Attach routing waypoints: legs spanning the whole trip pass through every stop.
+  const near = (a: LatLng, b: LatLng) => Math.abs(a.lat - b.lat) < 1e-6 && Math.abs(a.lng - b.lng) < 1e-6;
+  options.forEach((o) =>
+    o.segments.forEach((s) => {
+      const a = s.path[0]!;
+      const b = s.path[s.path.length - 1]!;
+      const whole = (near(a, origin) && near(b, dest)) || s.mode === "transit";
+      s.via = whole ? [a, ...stops, b] : [a, b];
+    }),
+  );
   return options;
 }
 

@@ -9,6 +9,9 @@ export const searchSchema = z.object({
   to: z.string().optional().catch(undefined),
   sort: z.enum(["fastest", "cheapest", "rated"]).optional().catch(undefined),
   modes: z.string().optional().catch(undefined),
+  /** intermediate stops, place ids joined by "|" */
+  stops: z.string().optional().catch(undefined),
+  alt: z.coerce.number().int().min(0).max(2).optional().catch(undefined),
 });
 export type TripSearch = z.infer<typeof searchSchema>;
 
@@ -26,4 +29,8 @@ export function useTick(ms = 3000) {
     return () => clearInterval(id);
   }, [ms]);
   return tick;
+}
+
+export function parseStops(stops?: string): string[] {
+  return stops ? stops.split("|").filter(Boolean) : [];
 }
