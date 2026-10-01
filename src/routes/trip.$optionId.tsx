@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { ArrowLeft, Leaf, Star } from "lucide-react";
+import { ArrowLeft, Leaf, Star, X } from "lucide-react";
 import { CityMap } from "@/components/map/CityMap";
 import { ModeIcon, ProviderBadge } from "@/components/trip/ProviderBadge";
 import { buildOptions, formatDuration } from "@/lib/mobility/engine";
-import { placeById } from "@/lib/mobility/geo";
+import { placeById, type Place } from "@/lib/mobility/geo";
+import { useRoadSegments } from "@/lib/mobility/routing";
 import { providerById } from "@/lib/mobility/providers";
-import { searchSchema, useTick } from "@/lib/mobility/search";
+import { parseStops, searchSchema, useTick } from "@/lib/mobility/search";
 
 export const Route = createFileRoute("/trip/$optionId")({
   validateSearch: searchSchema,
@@ -27,10 +28,12 @@ function TripDetail() {
   const tick = useTick();
   const from = search.from ?? "hbf";
   const option = useMemo(
-    () => (search.to ? buildOptions(from, search.to, tick).find((o) => o.id === optionId) : undefined),
-    [from, search.to, tick, optionId],
+    () => (search.to ? buildOptions(from, search.to, tick, parseStops(search.stops)).find((o) => o.id === optionId) : undefined),
+    [from, search.to, tick, optionId, search.stops],
   );
 
+  const road = useRoadSegments(option?.segments, search.alt ?? 0);
+  const stops = parseStops(search.stops).map(placeById).filter((p): p is Place => !!p);
   if (!option) {
     return (
       <main className="flex h-dvh flex-col items-center justify-center gap-3 font-sans">
@@ -51,10 +54,13 @@ function TripDetail() {
 
   return (
     <main className="relative flex h-dvh flex-col bg-background font-sans md:flex-row">
-      <CityMap className="relative h-[40dvh] md:h-full md:flex-1" origin={origin} destination={dest} fleet={[]} activeSegments={option.segments} visibleProviders={[]} />
-      <section className="-mt-6 flex flex-1 flex-col overflow-y-auto rounded-t-3xl bg-card p-5 shadow-sheet md:mt-0 md:w-[420px] md:flex-none md:rounded-none">
+      <CityMap className="relative h-[40dvh] md:h-full md:flex-1" origin={origin} destination={dest} stops={stops} fleet={[]} activeSegments={road.ready ? road.segments : undefined} visibleProviders={[]} fitPadding={{ top: 40, bottom: 60, left: 40, right: 40 }} />
+      <section className="relative -mt-6 flex flex-1 flex-col overflow-y-auto rounded-t-3xl bg-card p-5 shadow-sheet md:mt-0 md:w-[420px] md:flex-none md:rounded-none">
         <Link to="/" search={search} className="mb-4 flex items-center gap-1 text-sm font-semibold text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> All options
+        </Link>
+        <Link to="/" className="absolute right-4 top-4 z-10 rounded-full bg-muted p-2 text-foreground hover:bg-accent md:right-5" aria-label="Close and return to map">
+          <X className="h-4 w-4" />
         </Link>
         <div className="flex items-center gap-3">
           <ProviderBadge providerId={option.providerId} mode={option.mode} size={52} />
