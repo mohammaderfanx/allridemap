@@ -137,9 +137,10 @@ export function CityMap({
     let raf = 0;
     let disposed = false;
     let map: MLMap | null = null;
-    import("maplibre-gl").then(({ default: maplibregl }) => {
+    import("maplibre-gl").then((mod) => {
+      const maplibregl = ((mod as unknown as { default?: typeof mod }).default ?? mod) as typeof mod;
       if (disposed || !mapDivRef.current) return;
-      map = new maplibregl.Map({
+      const created = new maplibregl.Map({
         container: mapDivRef.current,
         style: STYLE,
         center: [9.1794, 48.7784],
@@ -148,9 +149,10 @@ export function CityMap({
         pitchWithRotate: false,
         attributionControl: { compact: true },
       });
-      map.touchPitch.disable();
-      map.on("click", (e) => propsRef.current.onPickPoint?.({ lat: e.lngLat.lat, lng: e.lngLat.lng }));
-      mapRef.current = map;
+      map = created;
+      created.touchPitch.disable();
+      created.on("click", (e) => propsRef.current.onPickPoint?.({ lat: e.lngLat.lat, lng: e.lngLat.lng }));
+      mapRef.current = created;
 
       const draw = () => {
         const canvas = canvasRef.current;
