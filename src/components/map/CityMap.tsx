@@ -354,7 +354,7 @@ export function CityMap({
 
   return (
     <div ref={wrapRef} className={className}>
-      <div ref={mapDivRef} className="absolute inset-0" />
+      <div ref={mapDivRef} style={{ position: "absolute", inset: 0 }} />
       <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
     </div>
   );
