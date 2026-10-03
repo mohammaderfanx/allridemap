@@ -126,11 +126,27 @@ export function CityMap({
       const maplibregl = ((mod as unknown as { default?: typeof mod }).default ?? mod) as typeof mod;
       maplibregl.setWorkerUrl((worker as { default: string }).default);
       if (disposed || !mapDivRef.current) return;
-      const styleUrl = (d: boolean) => `https://tiles.openfreemap.org/styles/${d ? "dark" : "positron"}`;
+      const styleFor = () => ({
+        version: 8 as const,
+        sources: {
+          osm: {
+            type: "raster" as const,
+            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+            tileSize: 256,
+            attribution: "© OpenStreetMap contributors",
+          },
+        },
+        layers: [{ id: "osm", type: "raster" as const, source: "osm" }],
+      });
       let styleDark = document.documentElement.classList.contains("dark");
+      const applyDarkFilter = (d: boolean) => {
+        if (mapDivRef.current)
+          mapDivRef.current.style.filter = d ? "invert(0.92) hue-rotate(180deg) saturate(0.35) brightness(0.95)" : "";
+      };
+      applyDarkFilter(styleDark);
       const created = new maplibregl.Map({
         container: mapDivRef.current,
-        style: styleUrl(styleDark),
+        style: styleFor(),
         center: [9.1794, 48.7784],
         zoom: 12.6,
         maxPitch: 0,
@@ -151,7 +167,7 @@ export function CityMap({
         const dark = document.documentElement.classList.contains("dark");
         if (dark !== styleDark) {
           styleDark = dark;
-          m.setStyle(styleUrl(dark));
+          applyDarkFilter(dark);
         }
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const w = wrap.clientWidth, h = wrap.clientHeight;
