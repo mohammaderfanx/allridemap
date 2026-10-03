@@ -1,24 +1,9 @@
 import { useEffect, useRef } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { Map as MLMap, StyleSpecification } from "maplibre-gl";
+import type { Map as MLMap } from "maplibre-gl";
 import type { LatLng, Place } from "@/lib/mobility/geo";
 import type { Segment, Vehicle } from "@/lib/mobility/engine";
 import { vehicleFeed, type LiveVehicle } from "@/lib/mobility/simulation";
-
-const tiles = (variant: string) =>
-  ["a", "b", "c", "d"].map((s) => `https://${s}.basemaps.cartocdn.com/rastertiles/${variant}/{z}/{x}/{y}@2x.png`);
-
-const STYLE: StyleSpecification = {
-  version: 8,
-  sources: {
-    light: { type: "raster", tiles: tiles("voyager"), tileSize: 256, attribution: "© OpenStreetMap contributors © CARTO" },
-    dark: { type: "raster", tiles: tiles("dark_all"), tileSize: 256, attribution: "© OpenStreetMap contributors © CARTO" },
-  },
-  layers: [
-    { id: "light", type: "raster", source: "light" },
-    { id: "dark", type: "raster", source: "dark", layout: { visibility: "none" } },
-  ],
-};
 
 type Logo = { bg: string; fg: string; text: string; border?: string; round?: boolean };
 function logoFor(providerId: string, dark: boolean, label?: string): Logo {
