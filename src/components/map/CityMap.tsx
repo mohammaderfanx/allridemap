@@ -143,7 +143,7 @@ export function CityMap({
       let styleDark = document.documentElement.classList.contains("dark");
       const created = new maplibregl.Map({
         container: mapDivRef.current,
-        style: styleUrl(styleDark),
+        style: styleFor(styleDark),
         center: [9.1794, 48.7784],
         zoom: 12.6,
         maxPitch: 0,
@@ -164,7 +164,7 @@ export function CityMap({
         const dark = document.documentElement.classList.contains("dark");
         if (dark !== styleDark) {
           styleDark = dark;
-          m.setStyle(styleUrl(dark));
+          m.setStyle(styleFor(dark));
         }
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const w = wrap.clientWidth, h = wrap.clientHeight;
