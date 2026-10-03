@@ -139,9 +139,14 @@ export function CityMap({
         layers: [{ id: "osm", type: "raster" as const, source: "osm" }],
       });
       let styleDark = document.documentElement.classList.contains("dark");
+      const applyDarkFilter = (d: boolean) => {
+        if (mapDivRef.current)
+          mapDivRef.current.style.filter = d ? "invert(0.92) hue-rotate(180deg) saturate(0.35) brightness(0.95)" : "";
+      };
+      applyDarkFilter(styleDark);
       const created = new maplibregl.Map({
         container: mapDivRef.current,
-        style: styleFor(styleDark),
+        style: styleFor(),
         center: [9.1794, 48.7784],
         zoom: 12.6,
         maxPitch: 0,
