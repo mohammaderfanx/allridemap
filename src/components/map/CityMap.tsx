@@ -141,9 +141,11 @@ export function CityMap({
       const maplibregl = ((mod as unknown as { default?: typeof mod }).default ?? mod) as typeof mod;
       maplibregl.setWorkerUrl((worker as { default: string }).default);
       if (disposed || !mapDivRef.current) return;
+      const styleUrl = (d: boolean) => `https://tiles.openfreemap.org/styles/${d ? "dark" : "positron"}`;
+      let styleDark = document.documentElement.classList.contains("dark");
       const created = new maplibregl.Map({
         container: mapDivRef.current,
-        style: STYLE,
+        style: styleUrl(styleDark),
         center: [9.1794, 48.7784],
         zoom: 12.6,
         maxPitch: 0,
@@ -162,9 +164,9 @@ export function CityMap({
         if (!canvas || !wrap || !m) return;
         const P = propsRef.current;
         const dark = document.documentElement.classList.contains("dark");
-        if (m.isStyleLoaded() && m.getLayoutProperty("dark", "visibility") !== (dark ? "visible" : "none")) {
-          m.setLayoutProperty("dark", "visibility", dark ? "visible" : "none");
-          m.setLayoutProperty("light", "visibility", dark ? "none" : "visible");
+        if (dark !== styleDark) {
+          styleDark = dark;
+          m.setStyle(styleUrl(dark));
         }
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const w = wrap.clientWidth, h = wrap.clientHeight;
