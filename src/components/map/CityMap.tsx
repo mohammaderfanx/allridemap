@@ -137,8 +137,9 @@ export function CityMap({
     let raf = 0;
     let disposed = false;
     let map: MLMap | null = null;
-    import("maplibre-gl").then((mod) => {
+    Promise.all([import("maplibre-gl"), import("maplibre-gl/dist/maplibre-gl-worker.mjs?url")]).then(([mod, worker]) => {
       const maplibregl = ((mod as unknown as { default?: typeof mod }).default ?? mod) as typeof mod;
+      maplibregl.setWorkerUrl((worker as { default: string }).default);
       if (disposed || !mapDivRef.current) return;
       const created = new maplibregl.Map({
         container: mapDivRef.current,
