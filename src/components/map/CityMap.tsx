@@ -167,7 +167,7 @@ export function CityMap({
         const dark = document.documentElement.classList.contains("dark");
         if (dark !== styleDark) {
           styleDark = dark;
-          m.setStyle(styleFor(dark));
+          applyDarkFilter(dark);
         }
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const w = wrap.clientWidth, h = wrap.clientHeight;
