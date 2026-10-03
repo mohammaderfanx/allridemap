@@ -126,7 +126,20 @@ export function CityMap({
       const maplibregl = ((mod as unknown as { default?: typeof mod }).default ?? mod) as typeof mod;
       maplibregl.setWorkerUrl((worker as { default: string }).default);
       if (disposed || !mapDivRef.current) return;
-      const styleUrl = (d: boolean) => `https://tiles.openfreemap.org/styles/${d ? "dark" : "positron"}`;
+      const styleFor = (d: boolean) => ({
+        version: 8 as const,
+        sources: {
+          carto: {
+            type: "raster" as const,
+            tiles: [
+              `https://basemaps.cartocdn.com/${d ? "dark_all" : "rastertiles/voyager"}/{z}/{x}/{y}@2x.png`,
+            ],
+            tileSize: 256,
+            attribution: "© OpenStreetMap contributors © CARTO",
+          },
+        },
+        layers: [{ id: "carto", type: "raster" as const, source: "carto" }],
+      });
       let styleDark = document.documentElement.classList.contains("dark");
       const created = new maplibregl.Map({
         container: mapDivRef.current,
