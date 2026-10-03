@@ -126,19 +126,17 @@ export function CityMap({
       const maplibregl = ((mod as unknown as { default?: typeof mod }).default ?? mod) as typeof mod;
       maplibregl.setWorkerUrl((worker as { default: string }).default);
       if (disposed || !mapDivRef.current) return;
-      const styleFor = (d: boolean) => ({
+      const styleFor = () => ({
         version: 8 as const,
         sources: {
-          carto: {
+          osm: {
             type: "raster" as const,
-            tiles: [
-              `https://basemaps.cartocdn.com/${d ? "dark_all" : "rastertiles/voyager"}/{z}/{x}/{y}@2x.png`,
-            ],
+            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
             tileSize: 256,
-            attribution: "© OpenStreetMap contributors © CARTO",
+            attribution: "© OpenStreetMap contributors",
           },
         },
-        layers: [{ id: "carto", type: "raster" as const, source: "carto" }],
+        layers: [{ id: "osm", type: "raster" as const, source: "osm" }],
       });
       let styleDark = document.documentElement.classList.contains("dark");
       const created = new maplibregl.Map({
