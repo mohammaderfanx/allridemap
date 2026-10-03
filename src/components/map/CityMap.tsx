@@ -1,24 +1,9 @@
 import { useEffect, useRef } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { Map as MLMap, StyleSpecification } from "maplibre-gl";
+import type { Map as MLMap } from "maplibre-gl";
 import type { LatLng, Place } from "@/lib/mobility/geo";
 import type { Segment, Vehicle } from "@/lib/mobility/engine";
 import { vehicleFeed, type LiveVehicle } from "@/lib/mobility/simulation";
-
-const tiles = (variant: string) =>
-  ["a", "b", "c", "d"].map((s) => `https://${s}.basemaps.cartocdn.com/rastertiles/${variant}/{z}/{x}/{y}@2x.png`);
-
-const STYLE: StyleSpecification = {
-  version: 8,
-  sources: {
-    light: { type: "raster", tiles: tiles("voyager"), tileSize: 256, attribution: "© OpenStreetMap contributors © CARTO" },
-    dark: { type: "raster", tiles: tiles("dark_all"), tileSize: 256, attribution: "© OpenStreetMap contributors © CARTO" },
-  },
-  layers: [
-    { id: "light", type: "raster", source: "light" },
-    { id: "dark", type: "raster", source: "dark", layout: { visibility: "none" } },
-  ],
-};
 
 type Logo = { bg: string; fg: string; text: string; border?: string; round?: boolean };
 function logoFor(providerId: string, dark: boolean, label?: string): Logo {
@@ -137,12 +122,15 @@ export function CityMap({
     let raf = 0;
     let disposed = false;
     let map: MLMap | null = null;
-    import("maplibre-gl").then((mod) => {
+    Promise.all([import("maplibre-gl"), import("maplibre-gl/dist/maplibre-gl-worker.mjs?url")]).then(([mod, worker]) => {
       const maplibregl = ((mod as unknown as { default?: typeof mod }).default ?? mod) as typeof mod;
+      maplibregl.setWorkerUrl((worker as { default: string }).default);
       if (disposed || !mapDivRef.current) return;
+      const styleUrl = (d: boolean) => `https://tiles.openfreemap.org/styles/${d ? "dark" : "positron"}`;
+      let styleDark = document.documentElement.classList.contains("dark");
       const created = new maplibregl.Map({
         container: mapDivRef.current,
-        style: STYLE,
+        style: styleUrl(styleDark),
         center: [9.1794, 48.7784],
         zoom: 12.6,
         maxPitch: 0,
@@ -161,9 +149,9 @@ export function CityMap({
         if (!canvas || !wrap || !m) return;
         const P = propsRef.current;
         const dark = document.documentElement.classList.contains("dark");
-        if (m.isStyleLoaded() && m.getLayoutProperty("dark", "visibility") !== (dark ? "visible" : "none")) {
-          m.setLayoutProperty("dark", "visibility", dark ? "visible" : "none");
-          m.setLayoutProperty("light", "visibility", dark ? "none" : "visible");
+        if (dark !== styleDark) {
+          styleDark = dark;
+          m.setStyle(styleUrl(dark));
         }
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const w = wrap.clientWidth, h = wrap.clientHeight;
@@ -353,7 +341,7 @@ export function CityMap({
 
   return (
     <div ref={wrapRef} className={className}>
-      <div ref={mapDivRef} className="absolute inset-0" />
+      <div ref={mapDivRef} style={{ position: "absolute", inset: 0 }} />
       <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
     </div>
   );
