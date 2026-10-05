@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+- Trip searches go through `searchTrips` (src/lib/mobility/backend.functions.ts), which caches option snapshots in Lovable Cloud for 60s; why: shared low-cost results with graceful local fallback.
+- "Continue with" handoffs call `trackHandoff`, which logs a conversion and builds links from provider templates stored in the database; why: affiliate tags and links editable without code changes.
