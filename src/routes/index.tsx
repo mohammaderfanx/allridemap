@@ -8,7 +8,8 @@ import { setDark, useIsDark } from "@/lib/theme";
 import type { Place } from "@/lib/mobility/geo";
 import { CityMap } from "@/components/map/CityMap";
 import { ModeIcon, ProviderBadge } from "@/components/trip/ProviderBadge";
-import { buildOptions, formatDuration, generateFleet, rankOptions, type SortKey } from "@/lib/mobility/engine";
+import { buildOptions, formatDuration, generateFleet, rankOptions, type SortKey, type TripOption } from "@/lib/mobility/engine";
+import { searchTrips } from "@/lib/mobility/backend.functions";
 import { PLACES, placeById, type LatLng } from "@/lib/mobility/geo";
 import { MODE_LABEL, PROVIDERS, type Mode } from "@/lib/mobility/providers";
 import { ALL_MODES, parseModes, parseStops, searchSchema, useTick } from "@/lib/mobility/search";
@@ -51,10 +52,28 @@ function Home() {
   const alt = search.alt ?? 0;
 
   const fleet = useMemo(() => generateFleet(tick), [tick]);
-  const options = useMemo(
-    () => (dest ? rankOptions(buildOptions(from, dest.id, tick, stopIds), sort).filter((o) => modes.includes(o.mode)) : []),
-    [from, dest, tick, sort, modes.join(), search.stops],
-  );
+  // Shared 60s cached snapshot from the server; local computation shows instantly until it arrives.
+  const [served, setServed] = useState<{ key: string; options: TripOption[] } | null>(null);
+  const tripKey = dest ? `${from}|${search.stops ?? ""}|${dest.id}` : "";
+  useEffect(() => {
+    if (!dest) return;
+    let alive = true;
+    const load = () =>
+      searchTrips({ data: { from, to: dest.id, stops: stopIds } })
+        .then((r) => alive && r.options.length && setServed({ key: tripKey, options: r.options }))
+        .catch(() => {});
+    load();
+    const t = setInterval(load, 60_000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, [tripKey]);
+  const options = useMemo(() => {
+    if (!dest) return [];
+    const base = served?.key === tripKey ? served.options : buildOptions(from, dest.id, tick, stopIds);
+    return rankOptions(base, sort).filter((o) => modes.includes(o.mode));
+  }, [from, dest, tick, sort, modes.join(), search.stops, served, tripKey]);
   const active = options.find((o) => o.id === selected) ?? options[0];
   const road = useRoadSegments(active?.segments, alt);
   const otherAlts = road.alternatives.filter((_, i) => i !== Math.min(alt, road.alternatives.length - 1)).map((r) => r.path);
