@@ -8,6 +8,7 @@ import { placeById, type Place } from "@/lib/mobility/geo";
 import { useRoadSegments } from "@/lib/mobility/routing";
 import { providerById } from "@/lib/mobility/providers";
 import { parseStops, searchSchema, useTick } from "@/lib/mobility/search";
+import { trackHandoff } from "@/lib/mobility/backend.functions";
 
 export const Route = createFileRoute("/trip/$optionId")({
   validateSearch: searchSchema,
@@ -45,11 +46,16 @@ function TripDetail() {
 
   const origin = placeById(from);
   const dest = placeById(search.to!);
-  const openProvider = () => {
-    if (option.providerId === "walk") return;
-    const t = setTimeout(() => window.open(option.deepLink.web, "_blank"), 900);
+  const openProvider = async () => {
+    if (option.providerId === "walk" || !origin || !dest) return;
+    const tracked = await trackHandoff({
+      data: { provider: option.providerId, olat: origin.lat, olng: origin.lng, dlat: dest.lat, dlng: dest.lng, fare: option.price },
+    }).catch(() => null);
+    const link = tracked ?? option.deepLink;
+    // If the app isn't installed the page never loses focus, so fall back to the website.
+    const t = setTimeout(() => window.open(link.web, "_blank"), 900);
     window.addEventListener("blur", () => clearTimeout(t), { once: true });
-    window.location.href = option.deepLink.app;
+    window.location.href = link.app;
   };
 
   return (
