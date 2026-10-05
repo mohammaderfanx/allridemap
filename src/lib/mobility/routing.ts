@@ -36,10 +36,28 @@ export function fetchRoutes(via: LatLng[], mode: Mode, alternatives = false): Pr
   return hit;
 }
 
-/** Alternatives for a single A→B leg: router alternatives plus left/right detours for variety. */
+/** Alternatives for a route; multi-stop routes combine per-leg alternatives so stops are still visited in order. */
 async function alternativesFor(via: LatLng[], mode: Mode): Promise<RoadRoute[]> {
-  const base = await fetchRoutes(via, mode, via.length === 2);
-  if (via.length !== 2 || base.length >= 3) return base.slice(0, 3);
+  if (via.length <= 2) return legAlternatives(via, mode);
+  const legs = await Promise.all(via.slice(1).map((p, i) => legAlternatives([via[i]!, p], mode)));
+  if (legs.some((l) => !l.length)) return fetchRoutes(via, mode);
+  const count = Math.max(...legs.map((l) => l.length));
+  const out: RoadRoute[] = [];
+  for (let k = 0; k < Math.min(3, count); k++) {
+    const parts = legs.map((l) => l[Math.min(k, l.length - 1)]!);
+    out.push({
+      path: parts.flatMap((r, i) => (i ? r.path.slice(1) : r.path)),
+      distanceM: parts.reduce((s, r) => s + r.distanceM, 0),
+      durationS: parts.reduce((s, r) => s + r.durationS, 0),
+    });
+  }
+  return out.filter((r, i) => out.findIndex((o) => Math.abs(o.distanceM - r.distanceM) < 150) === i);
+}
+
+/** Alternatives for a single A→B leg: router alternatives plus left/right detours for variety. */
+async function legAlternatives(via: LatLng[], mode: Mode): Promise<RoadRoute[]> {
+  const base = await fetchRoutes(via, mode, true);
+  if (base.length >= 3) return base.slice(0, 3);
   const [a, b] = via as [LatLng, LatLng];
   const mid = { lat: (a.lat + b.lat) / 2, lng: (a.lng + b.lng) / 2 };
   const dLat = b.lat - a.lat;
