@@ -14,7 +14,113 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      affiliate_conversions: {
+        Row: {
+          clicked_at: string
+          destination_lat: number
+          destination_lng: number
+          estimated_fare_eur: number | null
+          id: string
+          origin_lat: number
+          origin_lng: number
+          provider_id: string
+          user_id: string | null
+        }
+        Insert: {
+          clicked_at?: string
+          destination_lat: number
+          destination_lng: number
+          estimated_fare_eur?: number | null
+          id?: string
+          origin_lat: number
+          origin_lng: number
+          provider_id: string
+          user_id?: string | null
+        }
+        Update: {
+          clicked_at?: string
+          destination_lat?: number
+          destination_lng?: number
+          estimated_fare_eur?: number | null
+          id?: string
+          origin_lat?: number
+          origin_lng?: number
+          provider_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_conversions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "provider_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_integrations: {
+        Row: {
+          affiliate_tag: string | null
+          category: Database["public"]["Enums"]["provider_category"]
+          deep_link_template: string | null
+          id: string
+          provider_name: string
+          slug: string
+          status: Database["public"]["Enums"]["provider_status"]
+          web_fallback_url: string | null
+        }
+        Insert: {
+          affiliate_tag?: string | null
+          category: Database["public"]["Enums"]["provider_category"]
+          deep_link_template?: string | null
+          id?: string
+          provider_name: string
+          slug: string
+          status?: Database["public"]["Enums"]["provider_status"]
+          web_fallback_url?: string | null
+        }
+        Update: {
+          affiliate_tag?: string | null
+          category?: Database["public"]["Enums"]["provider_category"]
+          deep_link_template?: string | null
+          id?: string
+          provider_name?: string
+          slug?: string
+          status?: Database["public"]["Enums"]["provider_status"]
+          web_fallback_url?: string | null
+        }
+        Relationships: []
+      }
+      route_cache_snapshots: {
+        Row: {
+          cache_key: string
+          created_at: string
+          destination_geohash: string
+          expires_at: string
+          id: string
+          options_json: Json
+          origin_geohash: string
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string
+          destination_geohash: string
+          expires_at?: string
+          id?: string
+          options_json: Json
+          origin_geohash: string
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string
+          destination_geohash?: string
+          expires_at?: string
+          id?: string
+          options_json?: Json
+          origin_geohash?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +129,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      provider_category: "Ride-Hailing" | "Micro-Mobility" | "Public-Transit"
+      provider_status: "active" | "degraded" | "offline"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +257,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      provider_category: ["Ride-Hailing", "Micro-Mobility", "Public-Transit"],
+      provider_status: ["active", "degraded", "offline"],
+    },
   },
 } as const
