@@ -134,7 +134,17 @@ export type TripOption = {
   co2g: number;
   segments: Segment[];
   deepLink: { app: string; web: string };
+  /** number of vehicle changes */
+  transfers?: number;
+  /** transit line used, for live delay matching */
+  lineCode?: string;
+  /** live service alert applied to this option */
+  alert?: { header: string; delayMin: number; severity: string };
+  /** not beaten on time, cost, CO2 and transfers by any other option */
+  pareto?: boolean;
 };
+
+export type ServiceAlert = { affected_lines: string[]; header_text: string; delay_minutes: number; severity_level: string };
 
 const WALK_KMH = 4.8;
 const SCOOTER_KMH = 17;
@@ -367,25 +377,106 @@ export function buildOptions(originId: string, destId: string, tick = 0, stopIds
     });
   }
 
+  /* --- Multi-modal combos: walk → scooter → train → walk ------------ */
+  if (straight > 2500 && !stops.length) {
+    const line = TRANSIT_LINES[lineIdx]!;
+    for (const providerId of ["lime", "tier"]) {
+      const p = providerById(providerId);
+      const hubPt = lerp(origin, dest, 0.3);
+      const exitPt = lerp(origin, dest, 0.9);
+      const walk1 = 80 + Math.round(rand(`${providerId}:${key}:cw`) * 220);
+      const scootDist = distanceM(origin, hubPt) * 1.2;
+      const trainDist = distanceM(hubPt, exitPt) * 1.15;
+      const walk2 = Math.round(distanceM(exitPt, dest) * 1.2);
+      const w1 = minutes(walk1, WALK_KMH);
+      const sc = minutes(scootDist, SCOOTER_KMH);
+      const wait = 1 + ((hash(`${key}:${providerId}:cw`) + Math.round(tick / 3)) % 6);
+      const tr = minutes(trainDist, TRANSIT_KMH);
+      const w2 = minutes(walk2, WALK_KMH);
+      const fare = (straight > 9000 ? 4.4 : straight > 4500 ? 3.2 : 2.1) + p.baseFare + sc * p.perMin;
+      options.push({
+        id: `combo-${providerId}-${line.code.replace(/\s/g, "")}-${key}`,
+        providerId,
+        providerName: `${p.name} + VVS ${line.code}`,
+        mode: "transit",
+        headline: `Scooter to the station, then ${line.kind} ${line.code}`,
+        price: Number(fare.toFixed(2)),
+        priceLabel: euro(fare),
+        durationMin: w1 + sc + wait + tr + w2,
+        departsInMin: w1,
+        rating: ratingFor(providerId, origin),
+        availability: `Walk ${walk1} m → ${p.name} ${(scootDist / 1000).toFixed(1)} km → ${line.code}`,
+        co2g: Math.round((trainDist / 1000) * 29),
+        lineCode: line.code,
+        segments: [
+          { mode: "walk", providerId: "walk", label: `Walk to ${p.name} scooter`, detail: `${walk1} m`, durationMin: w1, distanceM: walk1, via: [], path: polyline(origin, lerp(origin, hubPt, 0.08), `cw1-${providerId}-${key}`, 0.3) },
+          { mode: "scooter", providerId, label: `${p.name} to the station`, detail: `${(scootDist / 1000).toFixed(1)} km · ${p.unlockLabel ?? ""}`, durationMin: sc, distanceM: Math.round(scootDist), via: [], path: polyline(lerp(origin, hubPt, 0.08), hubPt, `cs-${providerId}-${key}`, 0.5) },
+          { mode: "transit", providerId: "vvs", label: `${line.kind} ${line.code}`, detail: `${3 + (hash(key) % 5)} stops · departs in ${wait} min`, durationMin: tr + wait, distanceM: Math.round(trainDist), via: [], path: polyline(hubPt, exitPt, `ct-${providerId}-${key}`, 0.6) },
+          { mode: "walk", providerId: "walk", label: `Walk to ${dest.name}`, detail: `${walk2} m`, durationMin: w2, distanceM: walk2, via: [], path: polyline(exitPt, dest, `cw2-${providerId}-${key}`, 0.3) },
+        ],
+        deepLink: deepLink(providerId, { ...origin }, { ...dest }),
+      });
+    }
+  }
+
+  // Transfers = vehicle changes (+1 for options that include a line change).
+  options.forEach((o) => {
+    const vehicles = o.segments.filter((s) => s.mode !== "walk").length;
+    o.transfers = Math.max(0, vehicles - 1) + (o.headline.includes("transfer") ? 1 : 0);
+    if (!o.lineCode && o.providerId === "vvs") o.lineCode = o.providerName.replace(/^VVS\s*/, "");
+  });
+
   // Attach routing waypoints: legs spanning the whole trip pass through every stop.
   const near = (a: LatLng, b: LatLng) => Math.abs(a.lat - b.lat) < 1e-6 && Math.abs(a.lng - b.lng) < 1e-6;
   options.forEach((o) =>
     o.segments.forEach((s) => {
       const a = s.path[0]!;
       const b = s.path[s.path.length - 1]!;
-      const whole = (near(a, origin) && near(b, dest)) || s.mode === "transit";
+      const whole = (near(a, origin) && near(b, dest)) || (s.mode === "transit" && !o.id.startsWith("combo-"));
       s.via = whole ? [a, ...stops, b] : [a, b];
     }),
   );
   return options;
 }
 
-export type SortKey = "fastest" | "cheapest" | "rated";
+/** Applies live delay alerts to transit options on affected lines. */
+export function applyAlerts(options: TripOption[], alerts: ServiceAlert[]): TripOption[] {
+  if (!alerts.length) return options;
+  return options.map((o) => {
+    const a = o.lineCode ? alerts.find((x) => x.affected_lines.includes(o.lineCode!)) : undefined;
+    if (!a) return o;
+    return {
+      ...o,
+      durationMin: o.durationMin + a.delay_minutes,
+      departsInMin: o.departsInMin + a.delay_minutes,
+      availability: `+${a.delay_minutes} min delay · ${o.availability}`,
+      alert: { header: a.header_text, delayMin: a.delay_minutes, severity: a.severity_level },
+    };
+  });
+}
+
+/** Marks options on the Pareto frontier of time, cost, CO2 and transfers. */
+export function markPareto(options: TripOption[]): TripOption[] {
+  const v = (o: TripOption) => [o.durationMin, o.price ?? 99, o.co2g, o.transfers ?? 0];
+  return options.map((o) => {
+    const a = v(o);
+    const dominated = options.some((q) => {
+      if (q === o) return false;
+      const b = v(q);
+      return b.every((x, i) => x <= a[i]!) && b.some((x, i) => x < a[i]!);
+    });
+    return { ...o, pareto: !dominated };
+  });
+}
+
+export type SortKey = "fastest" | "cheapest" | "rated" | "eco" | "transfers";
 
 export function rankOptions(options: TripOption[], sort: SortKey): TripOption[] {
   const list = [...options];
   if (sort === "cheapest") list.sort((a, b) => (a.price ?? 99) - (b.price ?? 99) || a.durationMin - b.durationMin);
   else if (sort === "rated") list.sort((a, b) => b.rating - a.rating || a.durationMin - b.durationMin);
+  else if (sort === "eco") list.sort((a, b) => a.co2g - b.co2g || a.durationMin - b.durationMin);
+  else if (sort === "transfers") list.sort((a, b) => (a.transfers ?? 0) - (b.transfers ?? 0) || a.durationMin - b.durationMin);
   else list.sort((a, b) => a.durationMin - b.durationMin || (a.price ?? 99) - (b.price ?? 99));
   return list;
 }
