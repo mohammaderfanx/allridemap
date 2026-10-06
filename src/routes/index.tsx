@@ -247,7 +247,7 @@ function Home() {
                 <button
                   key={s.key}
                   onClick={() => set({ sort: s.key === "fastest" ? undefined : s.key })}
-                  className={`rounded-lg py-1.5 text-xs font-semibold transition-all ${
+                  className={`rounded-lg px-0.5 py-1.5 text-[11px] font-semibold leading-tight transition-all ${
                     sort === s.key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                   }`}
                 >
