@@ -8,7 +8,9 @@ import { setDark, useIsDark } from "@/lib/theme";
 import type { Place } from "@/lib/mobility/geo";
 import { CityMap } from "@/components/map/CityMap";
 import { ModeIcon, ProviderBadge } from "@/components/trip/ProviderBadge";
-import { buildOptions, formatDuration, generateFleet, rankOptions, type SortKey, type TripOption } from "@/lib/mobility/engine";
+import { applyAlerts, buildOptions, formatDuration, generateFleet, markPareto, rankOptions, type SortKey, type TripOption } from "@/lib/mobility/engine";
+import { useServiceAlerts } from "@/lib/mobility/alerts";
+import { TriangleAlert } from "lucide-react";
 import { searchTrips } from "@/lib/mobility/backend.functions";
 import { PLACES, placeById, type LatLng } from "@/lib/mobility/geo";
 import { MODE_LABEL, PROVIDERS, type Mode } from "@/lib/mobility/providers";
@@ -30,6 +32,8 @@ export const Route = createFileRoute("/")({
 const SORTS: { key: SortKey; label: string }[] = [
   { key: "fastest", label: "Fastest" },
   { key: "cheapest", label: "Cheapest" },
+  { key: "eco", label: "Greenest" },
+  { key: "transfers", label: "Fewest changes" },
   { key: "rated", label: "Best rated" },
 ];
 
@@ -69,12 +73,16 @@ function Home() {
       clearInterval(t);
     };
   }, [tripKey]);
+  const alerts = useServiceAlerts();
   const options = useMemo(() => {
     if (!dest) return [];
     const base = served?.key === tripKey ? served.options : buildOptions(from, dest.id, tick, stopIds);
-    return rankOptions(base, sort).filter((o) => modes.includes(o.mode));
-  }, [from, dest, tick, sort, modes.join(), search.stops, served, tripKey]);
+    return rankOptions(markPareto(applyAlerts(base, alerts)), sort).filter((o) => modes.includes(o.mode));
+  }, [from, dest, tick, sort, modes.join(), search.stops, served, tripKey, alerts]);
   const active = options.find((o) => o.id === selected) ?? options[0];
+  // Most relevant delay: the delayed option that would otherwise rank best, and the fastest undelayed replacement.
+  const delayed = [...options].filter((o) => o.alert).sort((a, b) => a.durationMin - a.alert!.delayMin - (b.durationMin - b.alert!.delayMin))[0];
+  const reroute = delayed ? [...options].filter((o) => !o.alert && o.mode !== "walk").sort((a, b) => a.durationMin - b.durationMin)[0] : undefined;
   const road = useRoadSegments(active?.segments, alt);
   const otherAlts = road.alternatives.filter((_, i) => i !== Math.min(alt, road.alternatives.length - 1)).map((r) => r.path);
   const visibleProviders = PROVIDERS.filter((p) => modes.includes(p.mode)).map((p) => p.id);
@@ -234,12 +242,12 @@ function Home() {
             ))}
           </div>
           {dest && (
-            <div className="mt-2 grid grid-cols-3 rounded-xl bg-muted p-1">
+            <div className="mt-2 grid grid-cols-5 rounded-xl bg-muted p-1">
               {SORTS.map((s) => (
                 <button
                   key={s.key}
                   onClick={() => set({ sort: s.key === "fastest" ? undefined : s.key })}
-                  className={`rounded-lg py-1.5 text-xs font-semibold transition-all ${
+                  className={`rounded-lg px-0.5 py-1.5 text-[11px] font-semibold leading-tight transition-all ${
                     sort === s.key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                   }`}
                 >
@@ -250,6 +258,24 @@ function Home() {
           )}
         </div>
 
+        {dest && delayed && (
+          <div className="mx-3 mb-2 flex items-start gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 p-2.5">
+            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+            <div className="min-w-0 flex-1 text-xs">
+              <div className="font-bold text-foreground">{delayed.alert!.header}</div>
+              {reroute && (
+                <div className="text-muted-foreground">
+                  Rerouting: {reroute.providerName} gets you there in {formatDuration(reroute.durationMin)}.
+                </div>
+              )}
+            </div>
+            {reroute && active?.id !== reroute.id && (
+              <button onClick={() => setSelected(reroute.id)} className="shrink-0 rounded-full bg-card px-2.5 py-1 text-xs font-bold text-primary">
+                Switch
+              </button>
+            )}
+          </div>
+        )}
         {dest && road.alternatives.length > 1 && (
           <div className="flex gap-2 overflow-x-auto px-3 pb-2">
             {road.alternatives.map((r, i) => {
@@ -308,6 +334,8 @@ function Home() {
                       <span className="truncate text-sm font-bold text-foreground">{o.providerName}</span>
                       {o.durationMin === fastest && <Tag>Fastest</Tag>}
                       {(o.price ?? 99) === cheapest && <Tag>Cheapest</Tag>}
+                      {o.pareto && o.durationMin !== fastest && (o.price ?? 99) !== cheapest && <Tag>Best trade-off</Tag>}
+                      {o.alert && <span className="rounded-full bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold text-destructive">+{o.alert.delayMin} min</span>}
                     </div>
                     <div className="truncate text-xs text-muted-foreground">{o.availability}</div>
                   </div>

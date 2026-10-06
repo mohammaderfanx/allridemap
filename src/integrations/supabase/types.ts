@@ -58,6 +58,42 @@ export type Database = {
           },
         ]
       }
+      gtfs_rt_service_alerts: {
+        Row: {
+          affected_lines: string[]
+          agency_id: string
+          delay_minutes: number
+          description_text: string | null
+          header_text: string
+          id: string
+          severity_level: Database["public"]["Enums"]["alert_severity"]
+          valid_from: string
+          valid_to: string | null
+        }
+        Insert: {
+          affected_lines?: string[]
+          agency_id?: string
+          delay_minutes?: number
+          description_text?: string | null
+          header_text: string
+          id?: string
+          severity_level?: Database["public"]["Enums"]["alert_severity"]
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Update: {
+          affected_lines?: string[]
+          agency_id?: string
+          delay_minutes?: number
+          description_text?: string | null
+          header_text?: string
+          id?: string
+          severity_level?: Database["public"]["Enums"]["alert_severity"]
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Relationships: []
+      }
       provider_integrations: {
         Row: {
           affiliate_tag: string | null
@@ -129,6 +165,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      alert_severity: "info" | "warning" | "severe"
       provider_category: "Ride-Hailing" | "Micro-Mobility" | "Public-Transit"
       provider_status: "active" | "degraded" | "offline"
     }
@@ -258,6 +295,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      alert_severity: ["info", "warning", "severe"],
       provider_category: ["Ride-Hailing", "Micro-Mobility", "Public-Transit"],
       provider_status: ["active", "degraded", "offline"],
     },

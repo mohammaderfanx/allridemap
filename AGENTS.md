@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 - Trip searches go through `searchTrips` (src/lib/mobility/backend.functions.ts), which caches option snapshots in Lovable Cloud for 60s; why: shared low-cost results with graceful local fallback.
 - "Continue with" handoffs call `trackHandoff`, which logs a conversion and builds links from provider templates stored in the database; why: affiliate tags and links editable without code changes.
+- Live transit delays come from the `gtfs_rt_service_alerts` table via `useServiceAlerts` and are applied client-side with `applyAlerts`; why: the source can be swapped for a real GTFS-RT feed without UI changes.

@@ -7,7 +7,7 @@ export const ALL_MODES: Mode[] = ["ride", "transit", "scooter", "bike", "walk"];
 export const searchSchema = z.object({
   from: z.string().optional().catch(undefined),
   to: z.string().optional().catch(undefined),
-  sort: z.enum(["fastest", "cheapest", "rated"]).optional().catch(undefined),
+  sort: z.enum(["fastest", "cheapest", "rated", "eco", "transfers"]).optional().catch(undefined),
   modes: z.string().optional().catch(undefined),
   /** intermediate stops, place ids joined by "|" */
   stops: z.string().optional().catch(undefined),

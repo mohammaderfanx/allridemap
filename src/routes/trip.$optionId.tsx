@@ -3,7 +3,8 @@ import { useMemo } from "react";
 import { ArrowLeft, Leaf, Star, X } from "lucide-react";
 import { CityMap } from "@/components/map/CityMap";
 import { ModeIcon, ProviderBadge } from "@/components/trip/ProviderBadge";
-import { buildOptions, formatDuration } from "@/lib/mobility/engine";
+import { applyAlerts, buildOptions, formatDuration } from "@/lib/mobility/engine";
+import { useServiceAlerts } from "@/lib/mobility/alerts";
 import { placeById, type Place } from "@/lib/mobility/geo";
 import { useRoadSegments } from "@/lib/mobility/routing";
 import { providerById } from "@/lib/mobility/providers";
@@ -28,9 +29,10 @@ function TripDetail() {
   const search = Route.useSearch();
   const tick = useTick();
   const from = search.from ?? "hbf";
+  const alerts = useServiceAlerts();
   const option = useMemo(
-    () => (search.to ? buildOptions(from, search.to, tick, parseStops(search.stops)).find((o) => o.id === optionId) : undefined),
-    [from, search.to, tick, optionId, search.stops],
+    () => (search.to ? applyAlerts(buildOptions(from, search.to, tick, parseStops(search.stops)), alerts).find((o) => o.id === optionId) : undefined),
+    [from, search.to, tick, optionId, search.stops, alerts],
   );
 
   const road = useRoadSegments(option?.segments, search.alt ?? 0);
