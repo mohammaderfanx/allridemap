@@ -50,14 +50,18 @@ function TripDetail() {
   const dest = placeById(search.to!);
   const openProvider = async () => {
     if (option.providerId === "walk" || !origin || !dest) return;
-    const tracked = await trackHandoff({
+    const signed = await createHandoff({
       data: { provider: option.providerId, olat: origin.lat, olng: origin.lng, dlat: dest.lat, dlng: dest.lng, fare: option.price },
     }).catch(() => null);
-    const link = tracked ?? option.deepLink;
-    // If the app isn't installed the page never loses focus, so fall back to the website.
-    const t = setTimeout(() => window.open(link.web, "_blank"), 900);
+    if (signed) {
+      // Signed single-use link; the server opens the app or falls back to the website.
+      window.location.href = signed.url;
+      return;
+    }
+    // Backend unreachable: open the provider directly (untracked).
+    const t = setTimeout(() => window.open(option.deepLink.web, "_blank"), 900);
     window.addEventListener("blur", () => clearTimeout(t), { once: true });
-    window.location.href = link.app;
+    window.location.href = option.deepLink.app;
   };
 
   return (
