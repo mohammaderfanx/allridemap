@@ -4,13 +4,25 @@ export function geoPlaceId(lat: number, lng: number, name: string) {
   return `geo:${lat.toFixed(5)},${lng.toFixed(5)},${encodeURIComponent(name)}`;
 }
 
-export function makeGeoPlace(lat: number, lng: number, name: string, district = "Stuttgart"): Place {
+export function makeGeoPlace(
+  lat: number,
+  lng: number,
+  name: string,
+  district = "Stuttgart",
+): Place {
   return { id: geoPlaceId(lat, lng, name), name, district, lat, lng };
 }
 
 type PhotonFeature = {
   geometry: { coordinates: [number, number] };
-  properties: { name?: string; street?: string; housenumber?: string; district?: string; city?: string; locality?: string };
+  properties: {
+    name?: string;
+    street?: string;
+    housenumber?: string;
+    district?: string;
+    city?: string;
+    locality?: string;
+  };
 };
 
 function featureToPlace(f: PhotonFeature): Place | null {
@@ -24,7 +36,9 @@ function featureToPlace(f: PhotonFeature): Place | null {
 /** Address / place autocomplete around Stuttgart (OpenStreetMap geocoder) merged with known places. */
 export async function searchPlaces(q: string, signal?: AbortSignal): Promise<Place[]> {
   const term = q.trim().toLowerCase();
-  const local = PLACES.filter((p) => !term || `${p.name} ${p.district}`.toLowerCase().includes(term)).slice(0, term ? 3 : 6);
+  const local = PLACES.filter(
+    (p) => !term || `${p.name} ${p.district}`.toLowerCase().includes(term),
+  ).slice(0, term ? 3 : 6);
   if (term.length < 3) return local;
   try {
     const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lat=48.7784&lon=9.1794&limit=6&bbox=8.95,48.62,9.42,48.9`;

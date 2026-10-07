@@ -29,7 +29,8 @@ type Track = { pts: { x: number; y: number }[]; cum: number[]; len: number };
 function toTrack(path: { lat: number; lng: number }[]): Track {
   const pts = path.map(project);
   const cum = [0];
-  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1]! + Math.hypot(pts[i]!.x - pts[i - 1]!.x, pts[i]!.y - pts[i - 1]!.y));
+  for (let i = 1; i < pts.length; i++)
+    cum.push(cum[i - 1]! + Math.hypot(pts[i]!.x - pts[i - 1]!.x, pts[i]!.y - pts[i - 1]!.y));
   return { pts, cum, len: cum[cum.length - 1]! };
 }
 
@@ -40,10 +41,22 @@ function pointAt(t: Track, d: number) {
   const b = t.pts[i]!;
   const seg = t.cum[i]! - t.cum[i - 1]! || 1;
   const k = Math.min(1, Math.max(0, (d - t.cum[i - 1]!) / seg));
-  return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, heading: (Math.atan2(b.x - a.x, -(b.y - a.y)) * 180) / Math.PI };
+  return {
+    x: a.x + (b.x - a.x) * k,
+    y: a.y + (b.y - a.y) * k,
+    heading: (Math.atan2(b.x - a.x, -(b.y - a.y)) * 180) / Math.PI,
+  };
 }
 
-type Agent = { id: string; providerId: string; mode: Mode; track: Track; d: number; dir: 1 | -1; mps: number };
+type Agent = {
+  id: string;
+  providerId: string;
+  mode: Mode;
+  track: Track;
+  d: number;
+  dir: 1 | -1;
+  mps: number;
+};
 
 class SimulatedFeed implements VehicleFeed {
   readonly intervalMs = 400;
@@ -57,7 +70,7 @@ class SimulatedFeed implements VehicleFeed {
     const minor = ROADS.filter((r) => r.class === "minor").map((r) => toTrack(r.path));
     const all = [...major, ...minor];
     let seed = 7;
-    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     const add = (n: number, ids: string[], mode: Mode, tracks: Track[], kmh: number) => {
       for (let i = 0; i < n; i++) {
         const track = tracks[Math.floor(rnd() * tracks.length)]!;
@@ -93,7 +106,14 @@ class SimulatedFeed implements VehicleFeed {
       }
       const p = pointAt(a.track, a.d);
       const ll = unproject(p.x, p.y);
-      return { id: a.id, providerId: a.providerId, mode: a.mode, lat: ll.lat, lng: ll.lng, heading: a.dir === 1 ? p.heading : p.heading + 180 };
+      return {
+        id: a.id,
+        providerId: a.providerId,
+        mode: a.mode,
+        lat: ll.lat,
+        lng: ll.lng,
+        heading: a.dir === 1 ? p.heading : p.heading + 180,
+      };
     });
     this.listeners.forEach((l) => l());
   }

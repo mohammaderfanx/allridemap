@@ -1,6 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpDown, ChevronRight, Info, MapPin, Moon, Plus, Search, Star, Sun, X } from "lucide-react";
+import {
+  ArrowUpDown,
+  ChevronRight,
+  Info,
+  MapPin,
+  Moon,
+  Plus,
+  Search,
+  Star,
+  Sun,
+  X,
+} from "lucide-react";
 import { useRef } from "react";
 import { useRoadSegments } from "@/lib/mobility/routing";
 import { searchPlaces, reversePlace } from "@/lib/mobility/geocode";
@@ -8,7 +19,16 @@ import { setDark, useIsDark } from "@/lib/theme";
 import type { Place } from "@/lib/mobility/geo";
 import { CityMap } from "@/components/map/CityMap";
 import { ModeIcon, ProviderBadge } from "@/components/trip/ProviderBadge";
-import { applyAlerts, buildOptions, formatDuration, generateFleet, markPareto, rankOptions, type SortKey, type TripOption } from "@/lib/mobility/engine";
+import {
+  applyAlerts,
+  buildOptions,
+  formatDuration,
+  generateFleet,
+  markPareto,
+  rankOptions,
+  type SortKey,
+  type TripOption,
+} from "@/lib/mobility/engine";
 import { useServiceAlerts } from "@/lib/mobility/alerts";
 import { TriangleAlert } from "lucide-react";
 import { searchTrips } from "@/lib/mobility/backend.functions";
@@ -21,9 +41,16 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "AllRide — Compare every ride in Stuttgart" },
-      { name: "description", content: "Uber, Bolt, taxi, VVS transit and e-scooters compared side by side for any trip across Stuttgart." },
+      {
+        name: "description",
+        content:
+          "Uber, Bolt, taxi, VVS transit and e-scooters compared side by side for any trip across Stuttgart.",
+      },
       { property: "og:title", content: "AllRide — Compare every ride in Stuttgart" },
-      { property: "og:description", content: "Find the fastest, cheapest or best-rated way across Stuttgart in one search." },
+      {
+        property: "og:description",
+        content: "Find the fastest, cheapest or best-rated way across Stuttgart in one search.",
+      },
     ],
   }),
   component: Home,
@@ -76,18 +103,30 @@ function Home() {
   const alerts = useServiceAlerts();
   const options = useMemo(() => {
     if (!dest) return [];
-    const base = served?.key === tripKey ? served.options : buildOptions(from, dest.id, tick, stopIds);
-    return rankOptions(markPareto(applyAlerts(base, alerts)), sort).filter((o) => modes.includes(o.mode));
+    const base =
+      served?.key === tripKey ? served.options : buildOptions(from, dest.id, tick, stopIds);
+    return rankOptions(markPareto(applyAlerts(base, alerts)), sort).filter((o) =>
+      modes.includes(o.mode),
+    );
   }, [from, dest, tick, sort, modes.join(), search.stops, served, tripKey, alerts]);
   const active = options.find((o) => o.id === selected) ?? options[0];
   // Most relevant delay: the delayed option that would otherwise rank best, and the fastest undelayed replacement.
-  const delayed = [...options].filter((o) => o.alert).sort((a, b) => a.durationMin - a.alert!.delayMin - (b.durationMin - b.alert!.delayMin))[0];
-  const reroute = delayed ? [...options].filter((o) => !o.alert && o.mode !== "walk").sort((a, b) => a.durationMin - b.durationMin)[0] : undefined;
+  const delayed = [...options]
+    .filter((o) => o.alert)
+    .sort((a, b) => a.durationMin - a.alert!.delayMin - (b.durationMin - b.alert!.delayMin))[0];
+  const reroute = delayed
+    ? [...options]
+        .filter((o) => !o.alert && o.mode !== "walk")
+        .sort((a, b) => a.durationMin - b.durationMin)[0]
+    : undefined;
   const road = useRoadSegments(active?.segments, alt);
-  const otherAlts = road.alternatives.filter((_, i) => i !== Math.min(alt, road.alternatives.length - 1)).map((r) => r.path);
+  const otherAlts = road.alternatives
+    .filter((_, i) => i !== Math.min(alt, road.alternatives.length - 1))
+    .map((r) => r.path);
   const visibleProviders = PROVIDERS.filter((p) => modes.includes(p.mode)).map((p) => p.id);
 
-  const set = (patch: Partial<typeof search>) => navigate({ search: (s) => ({ ...s, ...patch }), replace: true });
+  const set = (patch: Partial<typeof search>) =>
+    navigate({ search: (s) => ({ ...s, ...patch }), replace: true });
 
   const onPickPoint = (p: LatLng) => {
     if (!picking) return;
@@ -96,7 +135,8 @@ function Home() {
     reversePlace(p.lat, p.lng).then((pl) => applyPlace(which, pl));
   };
 
-  const setStops = (ids: string[]) => set({ stops: ids.length ? ids.join("|") : undefined, alt: undefined });
+  const setStops = (ids: string[]) =>
+    set({ stops: ids.length ? ids.join("|") : undefined, alt: undefined });
   const applyPlace = (which: string, pl: Place) => {
     if (which === "from") set({ from: pl.id, alt: undefined });
     else if (which === "to") set({ to: pl.id, alt: undefined });
@@ -143,28 +183,61 @@ function Home() {
               All<span className="text-primary">Ride</span>
             </span>
             <div className="flex items-center gap-3">
-              <button onClick={() => setDark(!dark)} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"} className="text-muted-foreground hover:text-foreground">
+              <button
+                onClick={() => setDark(!dark)}
+                aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </button>
-              <Link to="/about" className="text-muted-foreground hover:text-foreground" aria-label="About">
+              <Link
+                to="/about"
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="About"
+              >
                 <Info className="h-4 w-4" />
               </Link>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex-1 space-y-1.5">
-              <PlaceInput label="From" place={origin} placeholder="Start address" onSelect={(p) => set({ from: p.id })} onMap={() => setPicking("from")} picking={picking === "from"} />
+              <PlaceInput
+                label="From"
+                place={origin}
+                placeholder="Start address"
+                onSelect={(p) => set({ from: p.id })}
+                onMap={() => setPicking("from")}
+                picking={picking === "from"}
+              />
               {stops.map((st, i) => (
                 <div key={`${st.id}-${i}`} className="flex items-center gap-1">
                   <div className="flex-1">
-                    <PlaceInput label={`${i + 1}`} place={st} placeholder="Add a stop" onSelect={(p) => applyPlace(`stop${i}`, p)} onMap={() => setPicking(`stop${i}`)} picking={picking === `stop${i}`} />
+                    <PlaceInput
+                      label={`${i + 1}`}
+                      place={st}
+                      placeholder="Add a stop"
+                      onSelect={(p) => applyPlace(`stop${i}`, p)}
+                      onMap={() => setPicking(`stop${i}`)}
+                      picking={picking === `stop${i}`}
+                    />
                   </div>
-                  <button aria-label={`Remove stop ${i + 1}`} onClick={() => setStops(stopIds.filter((_, j) => j !== i))} className="p-1 text-muted-foreground hover:text-destructive">
+                  <button
+                    aria-label={`Remove stop ${i + 1}`}
+                    onClick={() => setStops(stopIds.filter((_, j) => j !== i))}
+                    className="p-1 text-muted-foreground hover:text-destructive"
+                  >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
               ))}
-              <PlaceInput label="To" place={dest} placeholder="Where to?" onSelect={(p) => set({ to: p.id, alt: undefined })} onMap={() => setPicking("to")} picking={picking === "to"} />
+              <PlaceInput
+                label="To"
+                place={dest}
+                placeholder="Where to?"
+                onSelect={(p) => set({ to: p.id, alt: undefined })}
+                onMap={() => setPicking("to")}
+                picking={picking === "to"}
+              />
             </div>
             <button
               aria-label="Swap"
@@ -176,14 +249,24 @@ function Home() {
           </div>
           {dest && stops.length < 4 && (
             <button
-              onClick={() => setStops([...stopIds, dest.id === "schlossplatz" ? "marienplatz" : "schlossplatz"].slice(0, 4))}
+              onClick={() =>
+                setStops(
+                  [...stopIds, dest.id === "schlossplatz" ? "marienplatz" : "schlossplatz"].slice(
+                    0,
+                    4,
+                  ),
+                )
+              }
               className="mt-2 flex items-center gap-1 px-1 text-xs font-bold text-primary"
             >
               <Plus className="h-3.5 w-3.5" /> Add stop
             </button>
           )}
           {picking && (
-            <p className="mt-2 px-1 text-xs font-medium text-primary">Tap the map to set your {picking === "from" ? "start" : picking === "to" ? "destination" : "stop"}</p>
+            <p className="mt-2 px-1 text-xs font-medium text-primary">
+              Tap the map to set your{" "}
+              {picking === "from" ? "start" : picking === "to" ? "destination" : "stop"}
+            </p>
           )}
         </div>
       </div>
@@ -220,7 +303,11 @@ function Home() {
                 {options.length} ways to {dest.name}
                 {stops.length ? ` · ${stops.length} stop${stops.length > 1 ? "s" : ""}` : ""}
               </h2>
-              <button onClick={clearTrip} aria-label="Close route and go back" className="ml-2 flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-bold text-foreground hover:bg-accent">
+              <button
+                onClick={clearTrip}
+                aria-label="Close route and go back"
+                className="ml-2 flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-bold text-foreground hover:bg-accent"
+              >
                 <X className="h-3.5 w-3.5" /> Close
               </button>
             </div>
@@ -233,7 +320,9 @@ function Home() {
                 key={m}
                 onClick={() => toggleMode(m)}
                 className={`flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  modes.includes(m) ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"
+                  modes.includes(m)
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card text-muted-foreground"
                 }`}
               >
                 <ModeIcon mode={m} className="h-3.5 w-3.5" />
@@ -265,12 +354,16 @@ function Home() {
               <div className="font-bold text-foreground">{delayed.alert!.header}</div>
               {reroute && (
                 <div className="text-muted-foreground">
-                  Rerouting: {reroute.providerName} gets you there in {formatDuration(reroute.durationMin)}.
+                  Rerouting: {reroute.providerName} gets you there in{" "}
+                  {formatDuration(reroute.durationMin)}.
                 </div>
               )}
             </div>
             {reroute && active?.id !== reroute.id && (
-              <button onClick={() => setSelected(reroute.id)} className="shrink-0 rounded-full bg-card px-2.5 py-1 text-xs font-bold text-primary">
+              <button
+                onClick={() => setSelected(reroute.id)}
+                className="shrink-0 rounded-full bg-card px-2.5 py-1 text-xs font-bold text-primary"
+              >
                 Switch
               </button>
             )}
@@ -290,7 +383,11 @@ function Home() {
                 >
                   <div className="text-xs font-bold text-foreground">
                     Route {i + 1}
-                    {r.durationS === fastestAlt ? " · Fastest" : r.distanceM === shortestAlt ? " · Shortest" : ""}
+                    {r.durationS === fastestAlt
+                      ? " · Fastest"
+                      : r.distanceM === shortestAlt
+                        ? " · Shortest"
+                        : ""}
                   </div>
                   <div className="text-[11px] text-muted-foreground">
                     {Math.round(r.durationS / 60)} min · {(r.distanceM / 1000).toFixed(1)} km
@@ -318,7 +415,11 @@ function Home() {
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </button>
               ))}
-          {dest && !options.length && <p className="p-4 text-center text-sm text-muted-foreground">No options match these filters.</p>}
+          {dest && !options.length && (
+            <p className="p-4 text-center text-sm text-muted-foreground">
+              No options match these filters.
+            </p>
+          )}
           {options.map((o) => {
             const isActive = active?.id === o.id;
             return (
@@ -331,23 +432,34 @@ function Home() {
                   <ProviderBadge providerId={o.providerId} mode={o.mode} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="truncate text-sm font-bold text-foreground">{o.providerName}</span>
+                      <span className="truncate text-sm font-bold text-foreground">
+                        {o.providerName}
+                      </span>
                       {o.durationMin === fastest && <Tag>Fastest</Tag>}
                       {(o.price ?? 99) === cheapest && <Tag>Cheapest</Tag>}
-                      {o.pareto && o.durationMin !== fastest && (o.price ?? 99) !== cheapest && <Tag>Best trade-off</Tag>}
-                      {o.alert && <span className="rounded-full bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold text-destructive">+{o.alert.delayMin} min</span>}
+                      {o.pareto && o.durationMin !== fastest && (o.price ?? 99) !== cheapest && (
+                        <Tag>Best trade-off</Tag>
+                      )}
+                      {o.alert && (
+                        <span className="rounded-full bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold text-destructive">
+                          +{o.alert.delayMin} min
+                        </span>
+                      )}
                     </div>
                     <div className="truncate text-xs text-muted-foreground">{o.availability}</div>
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-bold text-foreground">{o.priceLabel}</div>
-                    <div className="text-xs font-medium text-muted-foreground">{formatDuration(o.durationMin)}</div>
+                    <div className="text-xs font-medium text-muted-foreground">
+                      {formatDuration(o.durationMin)}
+                    </div>
                   </div>
                 </div>
                 {isActive && (
                   <div className="mt-3 flex items-center justify-between border-t border-border pt-2">
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Star className="h-3.5 w-3.5 fill-current text-[color:var(--brand-taxi)]" /> {o.rating.toFixed(1)} in {origin?.district}
+                      <Star className="h-3.5 w-3.5 fill-current text-[color:var(--brand-taxi)]" />{" "}
+                      {o.rating.toFixed(1)} in {origin?.district}
                     </span>
                     <Link
                       to="/trip/$optionId"
@@ -369,7 +481,11 @@ function Home() {
 }
 
 function Tag({ children }: { children: React.ReactNode }) {
-  return <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">{children}</span>;
+  return (
+    <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+      {children}
+    </span>
+  );
 }
 
 function PlaceInput({
@@ -394,7 +510,10 @@ function PlaceInput({
   useEffect(() => {
     if (!focus) return;
     const ctl = new AbortController();
-    const t = setTimeout(async () => setResults(await searchPlaces(q === place?.name ? "" : q, ctl.signal)), 220);
+    const t = setTimeout(
+      async () => setResults(await searchPlaces(q === place?.name ? "" : q, ctl.signal)),
+      220,
+    );
     return () => {
       clearTimeout(t);
       ctl.abort();
@@ -402,7 +521,9 @@ function PlaceInput({
   }, [q, focus]);
   return (
     <div className="relative">
-      <div className={`flex items-center gap-2 rounded-xl bg-muted px-3 py-2 ${picking || focus ? "ring-2 ring-primary" : ""}`}>
+      <div
+        className={`flex items-center gap-2 rounded-xl bg-muted px-3 py-2 ${picking || focus ? "ring-2 ring-primary" : ""}`}
+      >
         <span className="w-8 text-[11px] font-bold uppercase text-muted-foreground">{label}</span>
         <input
           aria-label={label}
@@ -419,7 +540,11 @@ function PlaceInput({
           }}
           className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground"
         />
-        <button onClick={onMap} aria-label={`Pick ${label} on map`} className="text-muted-foreground hover:text-primary">
+        <button
+          onClick={onMap}
+          aria-label={`Pick ${label} on map`}
+          className="text-muted-foreground hover:text-primary"
+        >
           <MapPin className="h-4 w-4" />
         </button>
       </div>
@@ -438,7 +563,9 @@ function PlaceInput({
               >
                 <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-semibold text-popover-foreground">{r.name}</span>
+                  <span className="block truncate text-sm font-semibold text-popover-foreground">
+                    {r.name}
+                  </span>
                   <span className="block truncate text-xs text-muted-foreground">{r.district}</span>
                 </span>
               </button>

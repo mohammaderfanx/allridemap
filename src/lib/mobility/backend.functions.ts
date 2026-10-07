@@ -5,14 +5,29 @@ import { placeById } from "./geo";
 
 const B32 = "0123456789bcdefghjkmnpqrstuvwxyz";
 function geohash(lat: number, lng: number, precision = 7): string {
-  let latR = [-90, 90], lngR = [-180, 180], bit = 0, ch = 0, even = true, out = "";
+  let latR = [-90, 90],
+    lngR = [-180, 180],
+    bit = 0,
+    ch = 0,
+    even = true,
+    out = "";
   while (out.length < precision) {
     const r = even ? lngR : latR;
     const v = even ? lng : lat;
     const mid = (r[0]! + r[1]!) / 2;
-    if (v >= mid) { ch = (ch << 1) | 1; r[0] = mid; } else { ch <<= 1; r[1] = mid; }
+    if (v >= mid) {
+      ch = (ch << 1) | 1;
+      r[0] = mid;
+    } else {
+      ch <<= 1;
+      r[1] = mid;
+    }
     even = !even;
-    if (++bit === 5) { out += B32[ch]; bit = 0; ch = 0; }
+    if (++bit === 5) {
+      out += B32[ch];
+      bit = 0;
+      ch = 0;
+    }
   }
   return out;
 }
@@ -20,7 +35,13 @@ function geohash(lat: number, lng: number, precision = 7): string {
 /** Trip search with a 60-second shared cache in Lovable Cloud. Falls back to live computation if the cache is unreachable. */
 export const searchTrips = createServerFn({ method: "POST" })
   .inputValidator((d) =>
-    z.object({ from: z.string().max(200), to: z.string().max(200), stops: z.array(z.string().max(200)).max(4) }).parse(d),
+    z
+      .object({
+        from: z.string().max(200),
+        to: z.string().max(200),
+        stops: z.array(z.string().max(200)).max(4),
+      })
+      .parse(d),
   )
   .handler(async ({ data }): Promise<{ options: TripOption[]; cached: boolean }> => {
     const o = placeById(data.from);
@@ -46,11 +67,17 @@ export const searchTrips = createServerFn({ method: "POST" })
         options_json: options as never,
       });
       // housekeeping: drop expired snapshots
-      await supabaseAdmin.from("route_cache_snapshots").delete().lt("expires_at", new Date(Date.now() - 300_000).toISOString());
+      await supabaseAdmin
+        .from("route_cache_snapshots")
+        .delete()
+        .lt("expires_at", new Date(Date.now() - 300_000).toISOString());
       return { options, cached: false };
     } catch (e) {
       console.error("route cache unavailable", e);
-      return { options: buildOptions(data.from, data.to, Math.floor(Date.now() / 3000), data.stops), cached: false };
+      return {
+        options: buildOptions(data.from, data.to, Math.floor(Date.now() / 3000), data.stops),
+        cached: false,
+      };
     }
   });
 
@@ -76,10 +103,22 @@ export const createHandoff = createServerFn({ method: "POST" })
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { signHandoff, estimatePayoutCents } = await import("./handoff.server");
-      const { data: p } = await supabaseAdmin.from("provider_integrations").select("id, category, status").eq("slug", data.provider).maybeSingle();
+      const { data: p } = await supabaseAdmin
+        .from("provider_integrations")
+        .select("id, category, status")
+        .eq("slug", data.provider)
+        .maybeSingle();
       if (!p || p.status === "offline") return null;
       const tid = crypto.randomUUID();
-      const token = signHandoff({ tid, p: data.provider, olat: data.olat, olng: data.olng, dlat: data.dlat, dlng: data.dlng, exp: Math.floor(Date.now() / 1000) + 600 });
+      const token = signHandoff({
+        tid,
+        p: data.provider,
+        olat: data.olat,
+        olng: data.olng,
+        dlat: data.dlat,
+        dlng: data.dlng,
+        exp: Math.floor(Date.now() / 1000) + 600,
+      });
       const { error } = await supabaseAdmin.from("affiliate_conversions_attribution").insert({
         token_id: tid,
         signed_payload: token,
@@ -89,7 +128,12 @@ export const createHandoff = createServerFn({ method: "POST" })
       if (error) throw error;
       // Keep the click log too (fare for revenue reporting).
       await supabaseAdmin.from("affiliate_conversions").insert({
-        provider_id: p.id, origin_lat: data.olat, origin_lng: data.olng, destination_lat: data.dlat, destination_lng: data.dlng, estimated_fare_eur: data.fare,
+        provider_id: p.id,
+        origin_lat: data.olat,
+        origin_lng: data.olng,
+        destination_lat: data.dlat,
+        destination_lng: data.dlng,
+        estimated_fare_eur: data.fare,
       });
       return { url: `/api/public/handoff?token=${encodeURIComponent(token)}` };
     } catch (e) {
@@ -129,7 +173,13 @@ export const trackHandoff = createServerFn({ method: "POST" })
         destination_lng: data.dlng,
         estimated_fare_eur: data.fare,
       });
-      const vars = { aff: p.affiliate_tag ?? "", olat: String(data.olat), olng: String(data.olng), dlat: String(data.dlat), dlng: String(data.dlng) };
+      const vars = {
+        aff: p.affiliate_tag ?? "",
+        olat: String(data.olat),
+        olng: String(data.olng),
+        dlat: String(data.dlat),
+        dlng: String(data.dlng),
+      };
       return {
         app: fill(p.deep_link_template ?? "", vars),
         web: fill(p.web_fallback_url ?? "", vars),
