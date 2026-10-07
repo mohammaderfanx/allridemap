@@ -58,6 +58,56 @@ export type Database = {
           },
         ]
       }
+      affiliate_conversions_attribution: {
+        Row: {
+          conversion_status: Database["public"]["Enums"]["conversion_status"]
+          converted_at: string | null
+          created_at: string
+          estimated_payout_cents: number
+          expires_at: string
+          postback_payload: Json | null
+          provider_id: string
+          provider_reference: string | null
+          signed_payload: string
+          token_id: string
+          used_at: string | null
+        }
+        Insert: {
+          conversion_status?: Database["public"]["Enums"]["conversion_status"]
+          converted_at?: string | null
+          created_at?: string
+          estimated_payout_cents?: number
+          expires_at?: string
+          postback_payload?: Json | null
+          provider_id: string
+          provider_reference?: string | null
+          signed_payload: string
+          token_id?: string
+          used_at?: string | null
+        }
+        Update: {
+          conversion_status?: Database["public"]["Enums"]["conversion_status"]
+          converted_at?: string | null
+          created_at?: string
+          estimated_payout_cents?: number
+          expires_at?: string
+          postback_payload?: Json | null
+          provider_id?: string
+          provider_reference?: string | null
+          signed_payload?: string
+          token_id?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_conversions_attribution_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "provider_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gtfs_rt_service_alerts: {
         Row: {
           affected_lines: string[]
@@ -166,6 +216,7 @@ export type Database = {
     }
     Enums: {
       alert_severity: "info" | "warning" | "severe"
+      conversion_status: "initiated" | "completed" | "cancelled"
       provider_category: "Ride-Hailing" | "Micro-Mobility" | "Public-Transit"
       provider_status: "active" | "degraded" | "offline"
     }
@@ -296,6 +347,7 @@ export const Constants = {
   public: {
     Enums: {
       alert_severity: ["info", "warning", "severe"],
+      conversion_status: ["initiated", "completed", "cancelled"],
       provider_category: ["Ride-Hailing", "Micro-Mobility", "Public-Transit"],
       provider_status: ["active", "degraded", "offline"],
     },

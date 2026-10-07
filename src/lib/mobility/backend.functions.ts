@@ -58,7 +58,47 @@ function fill(tpl: string, v: Record<string, string>) {
   return tpl.replace(/\{(\w+)\}/g, (_, k: string) => encodeURIComponent(v[k] ?? ""));
 }
 
-/** Records a "Continue with" click and returns the provider app link + web fallback built from the stored template. */
+/** Creates a single-use, signed, 10-minute handoff link. The affiliate tag is only added server-side when the link is opened. */
+export const createHandoff = createServerFn({ method: "POST" })
+  .inputValidator((d) =>
+    z
+      .object({
+        provider: z.string().max(40),
+        olat: z.number().min(-90).max(90),
+        olng: z.number().min(-180).max(180),
+        dlat: z.number().min(-90).max(90),
+        dlng: z.number().min(-180).max(180),
+        fare: z.number().min(0).max(10000).nullable(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }): Promise<{ url: string } | null> => {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { signHandoff, estimatePayoutCents } = await import("./handoff.server");
+      const { data: p } = await supabaseAdmin.from("provider_integrations").select("id, category, status").eq("slug", data.provider).maybeSingle();
+      if (!p || p.status === "offline") return null;
+      const tid = crypto.randomUUID();
+      const token = signHandoff({ tid, p: data.provider, olat: data.olat, olng: data.olng, dlat: data.dlat, dlng: data.dlng, exp: Math.floor(Date.now() / 1000) + 600 });
+      const { error } = await supabaseAdmin.from("affiliate_conversions_attribution").insert({
+        token_id: tid,
+        signed_payload: token,
+        provider_id: p.id,
+        estimated_payout_cents: estimatePayoutCents(p.category, data.fare),
+      });
+      if (error) throw error;
+      // Keep the click log too (fare for revenue reporting).
+      await supabaseAdmin.from("affiliate_conversions").insert({
+        provider_id: p.id, origin_lat: data.olat, origin_lng: data.olng, destination_lat: data.dlat, destination_lng: data.dlng, estimated_fare_eur: data.fare,
+      });
+      return { url: `/api/public/handoff?token=${encodeURIComponent(token)}` };
+    } catch (e) {
+      console.error("createHandoff failed", e);
+      return null;
+    }
+  });
+
+/** @deprecated replaced by createHandoff. Records a "Continue with" click and returns provider links. */
 export const trackHandoff = createServerFn({ method: "POST" })
   .inputValidator((d) =>
     z

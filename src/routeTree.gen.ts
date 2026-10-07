@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as TripOptionIdRouteImport } from './routes/trip.$optionId'
+import { Route as ApiPublicHandoffRouteImport } from './routes/api/public/handoff'
+import { Route as ApiPublicWebhooksAffiliatesProviderRouteImport } from './routes/api/public/webhooks/affiliates.$provider'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,35 +30,70 @@ const TripOptionIdRoute = TripOptionIdRouteImport.update({
   path: '/trip/$optionId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHandoffRoute = ApiPublicHandoffRouteImport.update({
+  id: '/api/public/handoff',
+  path: '/api/public/handoff',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicWebhooksAffiliatesProviderRoute =
+  ApiPublicWebhooksAffiliatesProviderRouteImport.update({
+    id: '/api/public/webhooks/affiliates/$provider',
+    path: '/api/public/webhooks/affiliates/$provider',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/trip/$optionId': typeof TripOptionIdRoute
+  '/api/public/handoff': typeof ApiPublicHandoffRoute
+  '/api/public/webhooks/affiliates/$provider': typeof ApiPublicWebhooksAffiliatesProviderRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/trip/$optionId': typeof TripOptionIdRoute
+  '/api/public/handoff': typeof ApiPublicHandoffRoute
+  '/api/public/webhooks/affiliates/$provider': typeof ApiPublicWebhooksAffiliatesProviderRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/trip/$optionId': typeof TripOptionIdRoute
+  '/api/public/handoff': typeof ApiPublicHandoffRoute
+  '/api/public/webhooks/affiliates/$provider': typeof ApiPublicWebhooksAffiliatesProviderRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/trip/$optionId'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/trip/$optionId'
+    | '/api/public/handoff'
+    | '/api/public/webhooks/affiliates/$provider'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/trip/$optionId'
-  id: '__root__' | '/' | '/about' | '/trip/$optionId'
+  to:
+    | '/'
+    | '/about'
+    | '/trip/$optionId'
+    | '/api/public/handoff'
+    | '/api/public/webhooks/affiliates/$provider'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/trip/$optionId'
+    | '/api/public/handoff'
+    | '/api/public/webhooks/affiliates/$provider'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   TripOptionIdRoute: typeof TripOptionIdRoute
+  ApiPublicHandoffRoute: typeof ApiPublicHandoffRoute
+  ApiPublicWebhooksAffiliatesProviderRoute: typeof ApiPublicWebhooksAffiliatesProviderRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +119,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TripOptionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/handoff': {
+      id: '/api/public/handoff'
+      path: '/api/public/handoff'
+      fullPath: '/api/public/handoff'
+      preLoaderRoute: typeof ApiPublicHandoffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/webhooks/affiliates/$provider': {
+      id: '/api/public/webhooks/affiliates/$provider'
+      path: '/api/public/webhooks/affiliates/$provider'
+      fullPath: '/api/public/webhooks/affiliates/$provider'
+      preLoaderRoute: typeof ApiPublicWebhooksAffiliatesProviderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +140,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   TripOptionIdRoute: TripOptionIdRoute,
+  ApiPublicHandoffRoute: ApiPublicHandoffRoute,
+  ApiPublicWebhooksAffiliatesProviderRoute:
+    ApiPublicWebhooksAffiliatesProviderRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
