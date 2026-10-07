@@ -9,7 +9,7 @@ import { placeById, type Place } from "@/lib/mobility/geo";
 import { useRoadSegments } from "@/lib/mobility/routing";
 import { providerById } from "@/lib/mobility/providers";
 import { parseStops, searchSchema, useTick } from "@/lib/mobility/search";
-import { trackHandoff } from "@/lib/mobility/backend.functions";
+import { createHandoff } from "@/lib/mobility/backend.functions";
 
 export const Route = createFileRoute("/trip/$optionId")({
   validateSearch: searchSchema,
