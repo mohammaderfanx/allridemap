@@ -144,7 +144,12 @@ export type TripOption = {
   pareto?: boolean;
 };
 
-export type ServiceAlert = { affected_lines: string[]; header_text: string; delay_minutes: number; severity_level: string };
+export type ServiceAlert = {
+  affected_lines: string[];
+  header_text: string;
+  delay_minutes: number;
+  severity_level: string;
+};
 
 const WALK_KMH = 4.8;
 const SCOOTER_KMH = 17;
@@ -168,7 +173,12 @@ const TRANSIT_LINES = [
   { code: "Bus 42", kind: "Bus", color: "--line-bus" },
 ];
 
-export function buildOptions(originId: string, destId: string, tick = 0, stopIds: string[] = []): TripOption[] {
+export function buildOptions(
+  originId: string,
+  destId: string,
+  tick = 0,
+  stopIds: string[] = [],
+): TripOption[] {
   const origin = placeById(originId);
   const dest = placeById(destId);
   if (!origin || !dest || origin.id === dest.id) return [];
@@ -176,7 +186,8 @@ export function buildOptions(originId: string, destId: string, tick = 0, stopIds
   const waypoints: LatLng[] = [origin, ...stops, dest];
 
   let straight = 0;
-  for (let i = 1; i < waypoints.length; i++) straight += distanceM(waypoints[i - 1]!, waypoints[i]!);
+  for (let i = 1; i < waypoints.length; i++)
+    straight += distanceM(waypoints[i - 1]!, waypoints[i]!);
   const options: TripOption[] = [];
   const key = `${origin.id}>${stops.map((s) => s.id).join(">")}${stops.length ? ">" : ""}${dest.id}`;
 
@@ -219,7 +230,8 @@ export function buildOptions(originId: string, destId: string, tick = 0, stopIds
     const dist = straight * 1.35;
     const surge = surgeFor(providerId, origin, tick);
     const ride = minutes(dist, RIDE_KMH);
-    const wait = 1 + Math.round(rand(`${providerId}:${origin.id}:wait`) * 7 + Math.sin(tick / 11) + 1);
+    const wait =
+      1 + Math.round(rand(`${providerId}:${origin.id}:wait`) * 7 + Math.sin(tick / 11) + 1);
     const price = (p.baseFare + (dist / 1000) * p.perKm + ride * p.perMin) * surge;
     const pickupWalk = Math.round(rand(`${providerId}:${key}:pw`) * 120);
     options.push({
@@ -272,7 +284,12 @@ export function buildOptions(originId: string, destId: string, tick = 0, stopIds
       const walkMin = minutes(walkToVehicle, WALK_KMH);
       const rideMin = minutes(dist, kmh);
       const price = p.baseFare + rideMin * p.perMin;
-      const nearby = 2 + Math.round(rand(`${providerId}:${origin.id}:cnt`) * 12 + Math.sin(tick / 7 + hash(providerId) % 5) * 2);
+      const nearby =
+        2 +
+        Math.round(
+          rand(`${providerId}:${origin.id}:cnt`) * 12 +
+            Math.sin(tick / 7 + (hash(providerId) % 5)) * 2,
+        );
       const battery = 45 + Math.round(rand(`${providerId}:${origin.id}:bat`) * 54);
       options.push({
         id: `${providerId}-${key}`,
@@ -296,7 +313,7 @@ export function buildOptions(originId: string, destId: string, tick = 0, stopIds
             durationMin: walkMin,
             distanceM: walkToVehicle,
             via: [],
-          path: polyline(origin, lerp(origin, dest, 0.07), `mv-${providerId}-${key}`, 0.4),
+            path: polyline(origin, lerp(origin, dest, 0.07), `mv-${providerId}-${key}`, 0.4),
           },
           {
             mode: p.mode,
@@ -306,7 +323,7 @@ export function buildOptions(originId: string, destId: string, tick = 0, stopIds
             durationMin: rideMin,
             distanceM: Math.round(dist),
             via: [],
-          path: polyline(origin, dest, `sc-${providerId}-${key}`, 0.8),
+            path: polyline(origin, dest, `sc-${providerId}-${key}`, 0.8),
           },
         ],
         deepLink: deepLink(providerId, { ...origin }, { ...dest }),
@@ -360,7 +377,12 @@ export function buildOptions(originId: string, destId: string, tick = 0, stopIds
           durationMin: rideMin,
           distanceM: Math.round(straight * 1.15),
           via: [],
-          path: polyline(lerp(origin, mid, 0.18), lerp(mid, dest, 0.82), `tr-${line.code}-${key}`, 0.6),
+          path: polyline(
+            lerp(origin, mid, 0.18),
+            lerp(mid, dest, 0.82),
+            `tr-${line.code}-${key}`,
+            0.6,
+          ),
         },
         {
           mode: "walk",
@@ -393,7 +415,8 @@ export function buildOptions(originId: string, destId: string, tick = 0, stopIds
       const wait = 1 + ((hash(`${key}:${providerId}:cw`) + Math.round(tick / 3)) % 6);
       const tr = minutes(trainDist, TRANSIT_KMH);
       const w2 = minutes(walk2, WALK_KMH);
-      const fare = (straight > 9000 ? 4.4 : straight > 4500 ? 3.2 : 2.1) + p.baseFare + sc * p.perMin;
+      const fare =
+        (straight > 9000 ? 4.4 : straight > 4500 ? 3.2 : 2.1) + p.baseFare + sc * p.perMin;
       options.push({
         id: `combo-${providerId}-${line.code.replace(/\s/g, "")}-${key}`,
         providerId,
@@ -409,10 +432,46 @@ export function buildOptions(originId: string, destId: string, tick = 0, stopIds
         co2g: Math.round((trainDist / 1000) * 29),
         lineCode: line.code,
         segments: [
-          { mode: "walk", providerId: "walk", label: `Walk to ${p.name} scooter`, detail: `${walk1} m`, durationMin: w1, distanceM: walk1, via: [], path: polyline(origin, lerp(origin, hubPt, 0.08), `cw1-${providerId}-${key}`, 0.3) },
-          { mode: "scooter", providerId, label: `${p.name} to the station`, detail: `${(scootDist / 1000).toFixed(1)} km · ${p.unlockLabel ?? ""}`, durationMin: sc, distanceM: Math.round(scootDist), via: [], path: polyline(lerp(origin, hubPt, 0.08), hubPt, `cs-${providerId}-${key}`, 0.5) },
-          { mode: "transit", providerId: "vvs", label: `${line.kind} ${line.code}`, detail: `${3 + (hash(key) % 5)} stops · departs in ${wait} min`, durationMin: tr + wait, distanceM: Math.round(trainDist), via: [], path: polyline(hubPt, exitPt, `ct-${providerId}-${key}`, 0.6) },
-          { mode: "walk", providerId: "walk", label: `Walk to ${dest.name}`, detail: `${walk2} m`, durationMin: w2, distanceM: walk2, via: [], path: polyline(exitPt, dest, `cw2-${providerId}-${key}`, 0.3) },
+          {
+            mode: "walk",
+            providerId: "walk",
+            label: `Walk to ${p.name} scooter`,
+            detail: `${walk1} m`,
+            durationMin: w1,
+            distanceM: walk1,
+            via: [],
+            path: polyline(origin, lerp(origin, hubPt, 0.08), `cw1-${providerId}-${key}`, 0.3),
+          },
+          {
+            mode: "scooter",
+            providerId,
+            label: `${p.name} to the station`,
+            detail: `${(scootDist / 1000).toFixed(1)} km · ${p.unlockLabel ?? ""}`,
+            durationMin: sc,
+            distanceM: Math.round(scootDist),
+            via: [],
+            path: polyline(lerp(origin, hubPt, 0.08), hubPt, `cs-${providerId}-${key}`, 0.5),
+          },
+          {
+            mode: "transit",
+            providerId: "vvs",
+            label: `${line.kind} ${line.code}`,
+            detail: `${3 + (hash(key) % 5)} stops · departs in ${wait} min`,
+            durationMin: tr + wait,
+            distanceM: Math.round(trainDist),
+            via: [],
+            path: polyline(hubPt, exitPt, `ct-${providerId}-${key}`, 0.6),
+          },
+          {
+            mode: "walk",
+            providerId: "walk",
+            label: `Walk to ${dest.name}`,
+            detail: `${walk2} m`,
+            durationMin: w2,
+            distanceM: walk2,
+            via: [],
+            path: polyline(exitPt, dest, `cw2-${providerId}-${key}`, 0.3),
+          },
         ],
         deepLink: deepLink(providerId, { ...origin }, { ...dest }),
       });
@@ -427,12 +486,14 @@ export function buildOptions(originId: string, destId: string, tick = 0, stopIds
   });
 
   // Attach routing waypoints: legs spanning the whole trip pass through every stop.
-  const near = (a: LatLng, b: LatLng) => Math.abs(a.lat - b.lat) < 1e-6 && Math.abs(a.lng - b.lng) < 1e-6;
+  const near = (a: LatLng, b: LatLng) =>
+    Math.abs(a.lat - b.lat) < 1e-6 && Math.abs(a.lng - b.lng) < 1e-6;
   options.forEach((o) =>
     o.segments.forEach((s) => {
       const a = s.path[0]!;
       const b = s.path[s.path.length - 1]!;
-      const whole = (near(a, origin) && near(b, dest)) || (s.mode === "transit" && !o.id.startsWith("combo-"));
+      const whole =
+        (near(a, origin) && near(b, dest)) || (s.mode === "transit" && !o.id.startsWith("combo-"));
       s.via = whole ? [a, ...stops, b] : [a, b];
     }),
   );
@@ -473,10 +534,13 @@ export type SortKey = "fastest" | "cheapest" | "rated" | "eco" | "transfers";
 
 export function rankOptions(options: TripOption[], sort: SortKey): TripOption[] {
   const list = [...options];
-  if (sort === "cheapest") list.sort((a, b) => (a.price ?? 99) - (b.price ?? 99) || a.durationMin - b.durationMin);
-  else if (sort === "rated") list.sort((a, b) => b.rating - a.rating || a.durationMin - b.durationMin);
+  if (sort === "cheapest")
+    list.sort((a, b) => (a.price ?? 99) - (b.price ?? 99) || a.durationMin - b.durationMin);
+  else if (sort === "rated")
+    list.sort((a, b) => b.rating - a.rating || a.durationMin - b.durationMin);
   else if (sort === "eco") list.sort((a, b) => a.co2g - b.co2g || a.durationMin - b.durationMin);
-  else if (sort === "transfers") list.sort((a, b) => (a.transfers ?? 0) - (b.transfers ?? 0) || a.durationMin - b.durationMin);
+  else if (sort === "transfers")
+    list.sort((a, b) => (a.transfers ?? 0) - (b.transfers ?? 0) || a.durationMin - b.durationMin);
   else list.sort((a, b) => a.durationMin - b.durationMin || (a.price ?? 99) - (b.price ?? 99));
   return list;
 }

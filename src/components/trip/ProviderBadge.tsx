@@ -14,7 +14,15 @@ export function ModeIcon({ mode, className }: { mode: Mode; className?: string }
   return <Icon className={className} strokeWidth={2.2} />;
 }
 
-export function ProviderBadge({ providerId, mode, size = 40 }: { providerId: string; mode: Mode; size?: number }) {
+export function ProviderBadge({
+  providerId,
+  mode,
+  size = 40,
+}: {
+  providerId: string;
+  mode: Mode;
+  size?: number;
+}) {
   const p = providerById(providerId);
   return (
     <div

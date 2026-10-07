@@ -8,20 +8,32 @@ import { vehicleFeed, type LiveVehicle } from "@/lib/mobility/simulation";
 type Logo = { bg: string; fg: string; text: string; border?: string; round?: boolean };
 function logoFor(providerId: string, dark: boolean, label?: string): Logo {
   switch (providerId) {
-    case "uber": return dark ? { bg: "#ffffff", fg: "#000000", text: "Uber" } : { bg: "#000000", fg: "#ffffff", text: "Uber" };
-    case "bolt": return { bg: "#32bb78", fg: "#ffffff", text: "Bolt" };
-    case "freenow": return { bg: "#e4003a", fg: "#ffffff", text: "FREENOW" };
-    case "taxi": return { bg: "#f7c600", fg: "#111111", text: "TAXI" };
-    case "lime": return { bg: "#0fd125", fg: "#ffffff", text: "lime", round: true };
-    case "tier": return { bg: "#0e1a50", fg: "#69d2aa", text: "TIER" };
-    case "voi": return { bg: "#f26961", fg: "#ffffff", text: "voi", round: true };
-    case "dott": return { bg: "#00a8e9", fg: "#ffffff", text: "dott", round: true };
-    case "nextbike": return { bg: "#e8384f", fg: "#ffffff", text: "Rad" };
+    case "uber":
+      return dark
+        ? { bg: "#ffffff", fg: "#000000", text: "Uber" }
+        : { bg: "#000000", fg: "#ffffff", text: "Uber" };
+    case "bolt":
+      return { bg: "#32bb78", fg: "#ffffff", text: "Bolt" };
+    case "freenow":
+      return { bg: "#e4003a", fg: "#ffffff", text: "FREENOW" };
+    case "taxi":
+      return { bg: "#f7c600", fg: "#111111", text: "TAXI" };
+    case "lime":
+      return { bg: "#0fd125", fg: "#ffffff", text: "lime", round: true };
+    case "tier":
+      return { bg: "#0e1a50", fg: "#69d2aa", text: "TIER" };
+    case "voi":
+      return { bg: "#f26961", fg: "#ffffff", text: "voi", round: true };
+    case "dott":
+      return { bg: "#00a8e9", fg: "#ffffff", text: "dott", round: true };
+    case "nextbike":
+      return { bg: "#e8384f", fg: "#ffffff", text: "Rad" };
     case "vvs":
       return label?.trim().startsWith("S")
         ? { bg: "#ffffff", fg: "#ec0016", text: "DB", border: "#ec0016" }
         : { bg: "#ffd500", fg: "#003a70", text: "VVS" };
-    default: return { bg: "#8e8e93", fg: "#ffffff", text: "walk", round: true };
+    default:
+      return { bg: "#8e8e93", fg: "#ffffff", text: "walk", round: true };
   }
 }
 
@@ -49,11 +61,11 @@ function drawLogo(ctx: CanvasRenderingContext2D, lg: Logo, x: number, y: number,
   ctx.textBaseline = "alphabetic";
 }
 
-
 type Track = { pts: [number, number][]; cum: number[]; len: number };
 function track(pts: [number, number][]): Track {
   const cum = [0];
-  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1]! + Math.hypot(pts[i]![0] - pts[i - 1]![0], pts[i]![1] - pts[i - 1]![1]));
+  for (let i = 1; i < pts.length; i++)
+    cum.push(cum[i - 1]! + Math.hypot(pts[i]![0] - pts[i - 1]![0], pts[i]![1] - pts[i - 1]![1]));
   return { pts, cum, len: cum[cum.length - 1] ?? 0 };
 }
 function along(t: Track, d: number): [number, number] {
@@ -94,9 +106,31 @@ export function CityMap({
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const mapRef = useRef<MLMap | null>(null);
-  const propsRef = useRef({ origin, destination, stops, fleet, activeSegments, alternatives, visibleProviders, onPickPoint });
-  propsRef.current = { origin, destination, stops, fleet, activeSegments, alternatives, visibleProviders, onPickPoint };
-  const liveRef = useRef<{ prev: Map<string, LiveVehicle>; cur: LiveVehicle[]; at: number }>({ prev: new Map(), cur: [], at: 0 });
+  const propsRef = useRef({
+    origin,
+    destination,
+    stops,
+    fleet,
+    activeSegments,
+    alternatives,
+    visibleProviders,
+    onPickPoint,
+  });
+  propsRef.current = {
+    origin,
+    destination,
+    stops,
+    fleet,
+    activeSegments,
+    alternatives,
+    visibleProviders,
+    onPickPoint,
+  };
+  const liveRef = useRef<{ prev: Map<string, LiveVehicle>; cur: LiveVehicle[]; at: number }>({
+    prev: new Map(),
+    cur: [],
+    at: 0,
+  });
 
   // live vehicle feed (simulated now, real-time later)
   useEffect(() => {
@@ -107,7 +141,11 @@ export function CityMap({
       const prev = new Map<string, LiveVehicle>();
       L.cur.forEach((c) => {
         const p = L.prev.get(c.id) ?? c;
-        prev.set(c.id, { ...c, lat: p.lat + (c.lat - p.lat) * k, lng: p.lng + (c.lng - p.lng) * k });
+        prev.set(c.id, {
+          ...c,
+          lat: p.lat + (c.lat - p.lat) * k,
+          lng: p.lng + (c.lng - p.lng) * k,
+        });
       });
       L.prev = prev;
       L.cur = vehicleFeed.getSnapshot();
@@ -122,8 +160,12 @@ export function CityMap({
     let raf = 0;
     let disposed = false;
     let map: MLMap | null = null;
-    Promise.all([import("maplibre-gl"), import("maplibre-gl/dist/maplibre-gl-worker.mjs?url")]).then(([mod, worker]) => {
-      const maplibregl = ((mod as unknown as { default?: typeof mod }).default ?? mod) as typeof mod;
+    Promise.all([
+      import("maplibre-gl"),
+      import("maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url"),
+    ]).then(([mod, worker]) => {
+      const maplibregl = ((mod as unknown as { default?: typeof mod }).default ??
+        mod) as typeof mod;
       maplibregl.setWorkerUrl((worker as { default: string }).default);
       if (disposed || !mapDivRef.current) return;
       const styleFor = () => ({
@@ -141,7 +183,9 @@ export function CityMap({
       let styleDark = document.documentElement.classList.contains("dark");
       const applyDarkFilter = (d: boolean) => {
         if (mapDivRef.current)
-          mapDivRef.current.style.filter = d ? "invert(0.92) hue-rotate(180deg) saturate(0.35) brightness(0.95)" : "";
+          mapDivRef.current.style.filter = d
+            ? "invert(0.92) hue-rotate(180deg) saturate(0.35) brightness(0.95)"
+            : "";
       };
       applyDarkFilter(styleDark);
       const created = new maplibregl.Map({
@@ -155,7 +199,9 @@ export function CityMap({
       });
       map = created;
       created.touchPitch.disable();
-      created.on("click", (e) => propsRef.current.onPickPoint?.({ lat: e.lngLat.lat, lng: e.lngLat.lng }));
+      created.on("click", (e) =>
+        propsRef.current.onPickPoint?.({ lat: e.lngLat.lat, lng: e.lngLat.lng }),
+      );
       mapRef.current = created;
 
       const draw = () => {
@@ -170,7 +216,8 @@ export function CityMap({
           applyDarkFilter(dark);
         }
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const w = wrap.clientWidth, h = wrap.clientHeight;
+        const w = wrap.clientWidth,
+          h = wrap.clientHeight;
         if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
           canvas.width = Math.round(w * dpr);
           canvas.height = Math.round(h * dpr);
@@ -206,7 +253,8 @@ export function CityMap({
         });
         const segs = P.activeSegments ?? [];
         segs.forEach((seg) => {
-          const color = seg.mode === "walk" ? "#8e8e93" : logoFor(seg.providerId, dark, seg.label).bg;
+          const color =
+            seg.mode === "walk" ? "#8e8e93" : logoFor(seg.providerId, dark, seg.label).bg;
           stroke(seg.path);
           ctx.lineWidth = seg.mode === "walk" ? 6 : 9;
           ctx.strokeStyle = dark ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.95)";
@@ -241,7 +289,10 @@ export function CityMap({
           });
         } else {
           const cell = 58;
-          const buckets = new Map<string, { n: number; x: number; y: number; providerId: string }>();
+          const buckets = new Map<
+            string,
+            { n: number; x: number; y: number; providerId: string }
+          >();
           P.fleet.forEach((veh) => {
             if (!P.visibleProviders.includes(veh.providerId)) return;
             const [x, y] = px(veh);
@@ -279,9 +330,18 @@ export function CityMap({
           L.cur.forEach((c) => {
             if (!P.visibleProviders.includes(c.providerId)) return;
             const pv = L.prev.get(c.id) ?? c;
-            const [x, y] = px({ lat: pv.lat + (c.lat - pv.lat) * t, lng: pv.lng + (c.lng - pv.lng) * t });
+            const [x, y] = px({
+              lat: pv.lat + (c.lat - pv.lat) * t,
+              lng: pv.lng + (c.lng - pv.lng) * t,
+            });
             if (x < -40 || x > w + 40 || y < -40 || y > h + 40) return;
-            drawLogo(ctx, logoFor(c.providerId, dark, c.mode === "transit" ? "S" : undefined), x, y, (c.mode === "transit" ? 19 : 16) * k);
+            drawLogo(
+              ctx,
+              logoFor(c.providerId, dark, c.mode === "transit" ? "S" : undefined),
+              x,
+              y,
+              (c.mode === "transit" ? 19 : 16) * k,
+            );
           });
         }
 
@@ -341,7 +401,8 @@ export function CityMap({
         if (tries++ < 20) setTimeout(go, 150);
         return;
       }
-      const lngs = pts.map((p) => p.lng), lats = pts.map((p) => p.lat);
+      const lngs = pts.map((p) => p.lng),
+        lats = pts.map((p) => p.lat);
       const wrap = wrapRef.current;
       const mobile = (wrap?.clientWidth ?? 1000) < 768;
       m.fitBounds(
@@ -349,7 +410,15 @@ export function CityMap({
           [Math.min(...lngs), Math.min(...lats)],
           [Math.max(...lngs), Math.max(...lats)],
         ],
-        { padding: fitPadding ?? (mobile ? { top: 190, bottom: 280, left: 40, right: 40 } : { top: 80, bottom: 80, left: 440, right: 460 }), maxZoom: 16, duration: 700 },
+        {
+          padding:
+            fitPadding ??
+            (mobile
+              ? { top: 190, bottom: 280, left: 40, right: 40 }
+              : { top: 80, bottom: 80, left: 440, right: 460 }),
+          maxZoom: 16,
+          duration: 700,
+        },
       );
     };
     go();

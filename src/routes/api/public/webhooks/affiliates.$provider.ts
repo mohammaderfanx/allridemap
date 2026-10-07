@@ -23,7 +23,8 @@ export const Route = createFileRoute("/api/public/webhooks/affiliates/$provider"
         if (raw.length > 10_000) return Response.json({ error: "Too large" }, { status: 413 });
         const { hmac, safeEqual } = await import("@/lib/mobility/handoff.server");
         const sig = request.headers.get("x-allride-signature") ?? "";
-        if (!sig || !safeEqual(sig, hmac(raw, key))) return Response.json({ error: "Invalid signature" }, { status: 401 });
+        if (!sig || !safeEqual(sig, hmac(raw, key)))
+          return Response.json({ error: "Invalid signature" }, { status: 401 });
 
         let parsed;
         try {
@@ -32,7 +33,11 @@ export const Route = createFileRoute("/api/public/webhooks/affiliates/$provider"
           return Response.json({ error: "Invalid body" }, { status: 400 });
         }
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data: prov } = await supabaseAdmin.from("provider_integrations").select("id").eq("slug", params.provider).maybeSingle();
+        const { data: prov } = await supabaseAdmin
+          .from("provider_integrations")
+          .select("id")
+          .eq("slug", params.provider)
+          .maybeSingle();
         if (!prov) return Response.json({ error: "Unknown provider" }, { status: 404 });
 
         // Only a handoff that belongs to this provider, was actually opened, and is still pending can convert.
@@ -43,7 +48,9 @@ export const Route = createFileRoute("/api/public/webhooks/affiliates/$provider"
             converted_at: new Date().toISOString(),
             provider_reference: parsed.provider_reference ?? null,
             postback_payload: parsed,
-            ...(parsed.payout_cents !== undefined ? { estimated_payout_cents: parsed.payout_cents } : {}),
+            ...(parsed.payout_cents !== undefined
+              ? { estimated_payout_cents: parsed.payout_cents }
+              : {}),
           })
           .eq("token_id", parsed.token_id)
           .eq("provider_id", prov.id)
