@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { ArrowLeft, Leaf, Star, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowLeft, Leaf, Navigation, Star, X } from "lucide-react";
 import { CityMap } from "@/components/map/CityMap";
 import { ModeIcon, ProviderBadge } from "@/components/trip/ProviderBadge";
-import { applyAlerts, buildOptions, formatDuration } from "@/lib/mobility/engine";
+import { LiveTripSheet } from "@/components/trip/LiveTripSheet";
+import { applyAlerts, buildOptions, formatDuration, type Segment } from "@/lib/mobility/engine";
+import { computeProgress, useLiveClock } from "@/lib/mobility/liveTrip";
 import { useServiceAlerts } from "@/lib/mobility/alerts";
 import { placeById, type Place } from "@/lib/mobility/geo";
 import { useRoadSegments } from "@/lib/mobility/routing";
@@ -48,6 +50,21 @@ function TripDetail() {
   );
 
   const road = useRoadSegments(option?.segments, search.alt ?? 0);
+  const [liveSegs, setLiveSegs] = useState<Segment[] | null>(null);
+  const [paused, setPaused] = useState(false);
+  const [elapsed, setElapsed] = useLiveClock(!!liveSegs, paused);
+  const progress = useMemo(() => (liveSegs ? computeProgress(liveSegs, elapsed) : null), [liveSegs, elapsed]);
+  const startLive = () => {
+    if (!option) return;
+    setPaused(false);
+    setLiveSegs(road.ready ? road.segments : option.segments);
+  };
+  const endLive = () => setLiveSegs(null);
+  const skipStep = () => {
+    if (!liveSegs || !progress) return;
+    const until = liveSegs.slice(0, progress.step + 1).reduce((a, s) => a + Math.max(0.5, s.durationMin), 0);
+    setElapsed(until + 0.01);
+  };
   const stops = parseStops(search.stops)
     .map(placeById)
     .filter((p): p is Place => !!p);
@@ -95,11 +112,24 @@ function TripDetail() {
         destination={dest}
         stops={stops}
         fleet={[]}
-        activeSegments={road.ready ? road.segments : undefined}
+        activeSegments={liveSegs ?? (road.ready ? road.segments : undefined)}
         visibleProviders={[]}
         fitPadding={{ top: 40, bottom: 60, left: 40, right: 40 }}
+        you={liveSegs ? progress?.position : undefined}
       />
       <section className="relative -mt-6 flex flex-1 flex-col overflow-y-auto rounded-t-3xl bg-card p-5 shadow-sheet md:mt-0 md:w-[420px] md:flex-none md:rounded-none">
+        {liveSegs && progress ? (
+          <LiveTripSheet
+            segments={liveSegs}
+            progress={progress}
+            paused={paused}
+            onPause={() => setPaused((p) => !p)}
+            onSkip={skipStep}
+            onEnd={endLive}
+            destinationName={dest?.name ?? "your destination"}
+          />
+        ) : (
+          <>
         <Link
           to="/"
           search={search}
@@ -203,7 +233,15 @@ function TripDetail() {
               </a>
             </>
           )}
+          <button
+            onClick={startLive}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-muted py-3 text-sm font-bold text-foreground hover:bg-accent"
+          >
+            <Navigation className="h-4 w-4" /> Start live trip
+          </button>
         </div>
+          </>
+        )}
       </section>
     </main>
   );

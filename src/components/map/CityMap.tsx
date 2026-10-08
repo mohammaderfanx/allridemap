@@ -89,6 +89,7 @@ export function CityMap({
   onPickPoint,
   fitPadding,
   className,
+  you,
 }: {
   origin?: Place | undefined;
   destination?: Place | undefined;
@@ -101,6 +102,8 @@ export function CityMap({
   onPickPoint?: ((p: LatLng) => void) | undefined;
   fitPadding?: { top: number; bottom: number; left: number; right: number };
   className?: string;
+  /** traveller position during live trip mode */
+  you?: LatLng | undefined;
 }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const mapDivRef = useRef<HTMLDivElement | null>(null);
@@ -115,6 +118,7 @@ export function CityMap({
     alternatives,
     visibleProviders,
     onPickPoint,
+    you,
   });
   propsRef.current = {
     origin,
@@ -125,6 +129,7 @@ export function CityMap({
     alternatives,
     visibleProviders,
     onPickPoint,
+    you,
   };
   const liveRef = useRef<{ prev: Map<string, LiveVehicle>; cur: LiveVehicle[]; at: number }>({
     prev: new Map(),
@@ -374,6 +379,21 @@ export function CityMap({
         if (P.origin) pin(P.origin, P.origin.name, "start");
         P.stops.forEach((s, i) => pin(s, s.name, "stop", i + 1));
         if (P.destination) pin(P.destination, P.destination.name, "end");
+        if (P.you) {
+          const [x, y] = px(P.you);
+          const pulse = (performance.now() % 1600) / 1600;
+          ctx.beginPath();
+          ctx.arc(x, y, 10 + pulse * 18, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(10,132,255,${0.35 * (1 - pulse)})`;
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(x, y, 9, 0, Math.PI * 2);
+          ctx.fillStyle = "#0a84ff";
+          ctx.fill();
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = "#ffffff";
+          ctx.stroke();
+        }
       };
       const loop = () => {
         draw();
