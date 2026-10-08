@@ -5,7 +5,8 @@ import { placeById } from "./geo";
 
 const B32 = "0123456789bcdefghjkmnpqrstuvwxyz";
 function geohash(lat: number, lng: number, precision = 7): string {
-  let latR = [-90, 90],
+  const latR = [-90, 90];
+  let
     lngR = [-180, 180],
     bit = 0,
     ch = 0,
