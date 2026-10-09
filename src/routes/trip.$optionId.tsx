@@ -57,7 +57,7 @@ function TripDetail() {
   const startLive = () => {
     if (!option) return;
     setPaused(false);
-    setLiveSegs(road.ready ? road.segments : option.segments);
+    setLiveSegs((road.ready ? road.segments : undefined) ?? option.segments);
   };
   const endLive = () => setLiveSegs(null);
   const skipStep = () => {
