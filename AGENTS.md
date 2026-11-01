@@ -12,3 +12,4 @@
 - "Continue with" handoffs call `trackHandoff`, which logs a conversion and builds links from provider templates stored in the database; why: affiliate tags and links editable without code changes.
 - Live transit delays come from the `gtfs_rt_service_alerts` table via `useServiceAlerts` and are applied client-side with `applyAlerts`; why: the source can be swapped for a real GTFS-RT feed without UI changes.
 - "Continue with" opens a signed, single-use, 10-minute link (`createHandoff` → /api/public/handoff); provider postbacks hit /api/public/webhooks/affiliates/$provider signed with AFFILIATE_WEBHOOK_SECRET; why: affiliate tags never reach the browser and conversions cannot be forged.
+- Demand forecasts come from `predictDemand` (src/lib/mobility/demand.ts) on H3 res-8 cells, h3-js loaded via dynamic import; why: a real model API keyed by H3 index can replace the simulated `predictCell` without UI changes.
