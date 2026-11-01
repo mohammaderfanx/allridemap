@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowUpDown,
   ChevronRight,
+  Flame,
   Info,
   MapPin,
   Moon,
@@ -32,6 +33,8 @@ import {
 import { useServiceAlerts } from "@/lib/mobility/alerts";
 import { TriangleAlert } from "lucide-react";
 import { searchTrips } from "@/lib/mobility/backend.functions";
+import { DemandPanel } from "@/components/trip/DemandPanel";
+import { useDemandForecast, type Horizon } from "@/lib/mobility/demand";
 import { PLACES, placeById, type LatLng } from "@/lib/mobility/geo";
 import { MODE_LABEL, PROVIDERS, type Mode } from "@/lib/mobility/providers";
 import { ALL_MODES, parseModes, parseStops, searchSchema, useTick } from "@/lib/mobility/search";
@@ -158,6 +161,9 @@ function Home() {
   };
 
   const dark = useIsDark();
+  const [heatOn, setHeatOn] = useState(false);
+  const [horizon, setHorizon] = useState<Horizon>(30);
+  const heatCells = useDemandForecast(heatOn, horizon);
   const cheapest = options.length ? Math.min(...options.map((o) => o.price ?? 99)) : 0;
   const fastest = options.length ? Math.min(...options.map((o) => o.durationMin)) : 0;
 
@@ -173,6 +179,7 @@ function Home() {
         alternatives={road.ready ? otherAlts : []}
         visibleProviders={visibleProviders}
         onPickPoint={onPickPoint}
+        heatmap={heatOn ? heatCells : undefined}
       />
 
       {/* Search card */}
@@ -183,6 +190,14 @@ function Home() {
               All<span className="text-primary">Ride</span>
             </span>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setHeatOn(!heatOn)}
+                aria-label={heatOn ? "Hide demand forecast" : "Show demand forecast"}
+                aria-pressed={heatOn}
+                className={heatOn ? "text-primary" : "text-muted-foreground hover:text-foreground"}
+              >
+                <Flame className="h-4 w-4" />
+              </button>
               <button
                 onClick={() => setDark(!dark)}
                 aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
@@ -199,6 +214,7 @@ function Home() {
               </Link>
             </div>
           </div>
+          {heatOn && <DemandPanel horizon={horizon} setHorizon={setHorizon} cells={heatCells} />}
           <div className="flex items-center gap-2">
             <div className="flex-1 space-y-1.5">
               <PlaceInput

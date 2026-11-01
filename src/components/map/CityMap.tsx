@@ -90,6 +90,7 @@ export function CityMap({
   fitPadding,
   className,
   you,
+  heatmap,
 }: {
   origin?: Place | undefined;
   destination?: Place | undefined;
@@ -104,6 +105,8 @@ export function CityMap({
   className?: string;
   /** traveller position during live trip mode */
   you?: LatLng | undefined;
+  /** predicted demand hexagons */
+  heatmap?: { boundary: LatLng[]; waitMin: number }[] | undefined;
 }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const mapDivRef = useRef<HTMLDivElement | null>(null);
@@ -119,6 +122,7 @@ export function CityMap({
     visibleProviders,
     onPickPoint,
     you,
+    heatmap,
   });
   propsRef.current = {
     origin,
@@ -130,6 +134,7 @@ export function CityMap({
     visibleProviders,
     onPickPoint,
     you,
+    heatmap,
   };
   const liveRef = useRef<{ prev: Map<string, LiveVehicle>; cur: LiveVehicle[]; at: number }>({
     prev: new Map(),
@@ -250,6 +255,36 @@ export function CityMap({
             else ctx.moveTo(x, y);
           });
         };
+        // predicted demand hexagons (H3), coloured by expected wait
+        if (P.heatmap?.length) {
+          const showLabels = m.getZoom() >= 13.5;
+          ctx.font = `800 ${Math.round(10 * k)}px Manrope, ui-sans-serif, system-ui`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          P.heatmap.forEach((c) => {
+            stroke(c.boundary);
+            ctx.closePath();
+            const t = Math.min(1, Math.max(0, (c.waitMin - 2) / 12));
+            const hue = 140 - 140 * t; // green → red
+            ctx.fillStyle = `hsla(${hue}, 80%, ${dark ? 50 : 48}%, ${0.14 + 0.3 * t})`;
+            ctx.fill();
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = `hsla(${hue}, 80%, 45%, 0.35)`;
+            ctx.stroke();
+            if (showLabels) {
+              let sx = 0,
+                sy = 0;
+              c.boundary.forEach((b) => {
+                const [x, y] = px(b);
+                sx += x;
+                sy += y;
+              });
+              ctx.fillStyle = text;
+              ctx.fillText(`${c.waitMin}′`, sx / c.boundary.length, sy / c.boundary.length);
+            }
+          });
+          ctx.textBaseline = "alphabetic";
+        }
         P.alternatives.forEach((alt) => {
           stroke(alt);
           ctx.lineWidth = 6;
