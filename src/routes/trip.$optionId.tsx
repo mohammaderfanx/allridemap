@@ -1,5 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  CAR_BASELINE_G_PER_KM,
+  ledgerTotals,
+  recordSaving,
+  savingsFor,
+  useCarbonLedger,
+} from "@/lib/mobility/carbon";
+
+const formatGrams = (g: number) =>
+  g >= 1000 ? `${(g / 1000).toFixed(g >= 10000 ? 0 : 1)} kg` : `${g} g`;
 import { ArrowLeft, Leaf, Navigation, Star, X } from "lucide-react";
 import { CityMap } from "@/components/map/CityMap";
 import { ModeIcon, ProviderBadge } from "@/components/trip/ProviderBadge";
@@ -60,6 +70,19 @@ function TripDetail() {
     setLiveSegs((road.ready ? road.segments : undefined) ?? option.segments);
   };
   const endLive = () => setLiveSegs(null);
+  const saving = useMemo(
+    () => (option ? savingsFor(option) : { km: 0, saved: 0, points: 0 }),
+    [option],
+  );
+  const totals = ledgerTotals(useCarbonLedger());
+  const recordedRef = useRef(false);
+  useEffect(() => {
+    if (!liveSegs) recordedRef.current = false;
+    else if (progress?.done && !recordedRef.current && option) {
+      recordedRef.current = true;
+      if (saving.saved > 0) recordSaving(option.providerId, saving.saved);
+    }
+  }, [liveSegs, progress?.done, option, saving.saved]);
   const skipStep = () => {
     if (!liveSegs || !progress) return;
     const until = liveSegs.slice(0, progress.step + 1).reduce((a, s) => a + Math.max(0.5, s.durationMin), 0);
@@ -127,6 +150,8 @@ function TripDetail() {
             onSkip={skipStep}
             onEnd={endLive}
             destinationName={dest?.name ?? "your destination"}
+            co2SavedG={saving.saved}
+            points={saving.points}
           />
         ) : (
           <>
@@ -205,10 +230,26 @@ function TripDetail() {
           ))}
         </ol>
 
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Leaf className="h-3.5 w-3.5" />{" "}
-          {option.co2g ? `~${option.co2g} g CO₂` : "Zero emissions"}
-        </p>
+        <div className="rounded-2xl bg-muted p-3">
+          <p className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+            <Leaf className="h-4 w-4 text-primary" />
+            {saving.saved > 0
+              ? `Saves ${formatGrams(saving.saved)} CO₂ vs. driving`
+              : "Similar CO₂ to driving"}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {option.co2g ? `~${option.co2g} g CO₂` : "Zero emissions"} for{" "}
+            {saving.km.toFixed(1)} km · car would emit{" "}
+            {formatGrams(Math.round(saving.km * CAR_BASELINE_G_PER_KM))}
+            {saving.points > 0 && ` · earn ${saving.points} green points on arrival`}
+          </p>
+          {totals.trips > 0 && (
+            <p className="mt-1 text-xs font-semibold text-primary">
+              Your green pass: {formatGrams(totals.saved)} saved · {totals.points} points ·{" "}
+              {totals.trips} trips
+            </p>
+          )}
+        </div>
 
         <div className="mt-auto pt-6">
           {option.providerId === "walk" ? (
