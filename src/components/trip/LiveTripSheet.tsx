@@ -17,6 +17,8 @@ export function LiveTripSheet({
   onSkip,
   onEnd,
   destinationName,
+  co2SavedG = 0,
+  points = 0,
 }: {
   segments: Segment[];
   progress: LiveProgress;
@@ -25,6 +27,8 @@ export function LiveTripSheet({
   onSkip: () => void;
   onEnd: () => void;
   destinationName: string;
+  co2SavedG?: number;
+  points?: number;
 }) {
   const cur = segments[progress.step];
   const next = segments[progress.step + 1];
@@ -39,6 +43,12 @@ export function LiveTripSheet({
         </div>
         <h2 className="text-xl font-extrabold text-foreground">You've arrived</h2>
         <p className="text-sm text-muted-foreground">Welcome to {destinationName}.</p>
+        {co2SavedG > 0 && (
+          <p className="rounded-2xl bg-muted px-4 py-2 text-sm font-bold text-foreground">
+            🌱 You saved {co2SavedG >= 1000 ? `${(co2SavedG / 1000).toFixed(1)} kg` : `${co2SavedG} g`} CO₂ vs. driving
+            {points > 0 && ` · +${points} green points`}
+          </p>
+        )}
         <button onClick={onEnd} className="mt-2 rounded-2xl bg-primary px-6 py-3 font-bold text-primary-foreground">
           Done
         </button>
