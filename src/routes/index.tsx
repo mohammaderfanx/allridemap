@@ -86,32 +86,14 @@ function Home() {
   const alt = search.alt ?? 0;
 
   const fleet = useMemo(() => generateFleet(tick), [tick]);
-  // Shared 60s cached snapshot from the server; local computation shows instantly until it arrives.
-  const [served, setServed] = useState<{ key: string; options: TripOption[] } | null>(null);
-  const tripKey = dest ? `${from}|${search.stops ?? ""}|${dest.id}` : "";
-  useEffect(() => {
-    if (!dest) return;
-    let alive = true;
-    const load = () =>
-      searchTrips({ data: { from, to: dest.id, stops: stopIds } })
-        .then((r) => alive && r.options.length && setServed({ key: tripKey, options: r.options }))
-        .catch(() => {});
-    load();
-    const t = setInterval(load, 60_000);
-    return () => {
-      alive = false;
-      clearInterval(t);
-    };
-  }, [tripKey]);
+  // Shared 60s cached snapshot from the server (same source as the trip page).
+  const base = useTripOptions(from, dest?.id, stopIds, tick);
   const alerts = useServiceAlerts();
-  const options = useMemo(() => {
-    if (!dest) return [];
-    const base =
-      served?.key === tripKey ? served.options : buildOptions(from, dest.id, tick, stopIds);
-    return rankOptions(markPareto(applyAlerts(base, alerts)), sort).filter((o) =>
-      modes.includes(o.mode),
-    );
-  }, [from, dest, tick, sort, modes.join(), search.stops, served, tripKey, alerts]);
+  const options = useMemo(
+    () => rankOptions(markPareto(applyAlerts(base, alerts)), sort).filter((o) => modes.includes(o.mode)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [base, sort, modes.join(), alerts],
+  );
   const active = options.find((o) => o.id === selected) ?? options[0];
   // Most relevant delay: the delayed option that would otherwise rank best, and the fastest undelayed replacement.
   const delayed = [...options]
