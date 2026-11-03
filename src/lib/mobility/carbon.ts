@@ -43,19 +43,52 @@ const listeners = new Set<() => void>();
 let cache: LedgerEntry[] | null = null;
 const EMPTY: LedgerEntry[] = [];
 
-function read(): LedgerEntry[] {
-  if (cache) return cache;
+function isEntry(e: unknown): e is LedgerEntry {
+  if (!e || typeof e !== "object") return false;
+  const x = e as Record<string, unknown>;
+  return typeof x.id === "string" && typeof x.at === "string" && typeof x.provider === "string" &&
+    typeof x.co2SavedG === "number" && Number.isFinite(x.co2SavedG);
+}
+
+/** Parses stored ledger data; anything damaged is dropped instead of crashing the page. */
+export function parseLedger(raw: string | null): LedgerEntry[] {
   try {
-    cache = JSON.parse(localStorage.getItem(KEY) ?? "[]") as LedgerEntry[];
+    const v: unknown = JSON.parse(raw ?? "[]");
+    return Array.isArray(v) ? v.filter(isEntry) : [];
   } catch {
-    cache = [];
+    return [];
   }
+}
+
+function load(): LedgerEntry[] {
+  try {
+    return parseLedger(localStorage.getItem(KEY));
+  } catch {
+    return [];
+  }
+}
+
+function read(): LedgerEntry[] {
+  if (!cache) cache = load();
   return cache;
 }
 
+let storageBound = false;
+function bindStorage() {
+  if (storageBound || typeof window === "undefined") return;
+  storageBound = true;
+  // Keep totals in sync when another tab records a trip.
+  window.addEventListener("storage", (e) => {
+    if (e.key !== KEY) return;
+    cache = load();
+    listeners.forEach((l) => l());
+  });
+}
+
 export function recordSaving(provider: string, co2SavedG: number) {
+  // Re-read storage first so we never overwrite trips saved in another tab.
   const next = [
-    ...read(),
+    ...load(),
     {
       id: crypto.randomUUID(),
       at: new Date().toISOString(),
@@ -76,6 +109,7 @@ export function recordSaving(provider: string, co2SavedG: number) {
 export function useCarbonLedger(): LedgerEntry[] {
   return useSyncExternalStore(
     (cb) => {
+      bindStorage();
       listeners.add(cb);
       return () => listeners.delete(cb);
     },

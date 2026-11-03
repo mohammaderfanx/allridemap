@@ -3,6 +3,14 @@ import { useSyncExternalStore } from "react";
 const listeners = new Set<() => void>();
 let mqBound = false;
 
+function readStored(): string | null {
+  try {
+    return localStorage.getItem("theme");
+  } catch {
+    return null;
+  }
+}
+
 function apply(dark: boolean) {
   document.documentElement.classList.toggle("dark", dark);
   listeners.forEach((l) => l());
@@ -13,17 +21,21 @@ function subscribe(cb: () => void) {
   if (!mqBound && typeof window !== "undefined") {
     mqBound = true;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const stored = localStorage.getItem("theme");
+    const stored = readStored();
     apply(stored ? stored === "dark" : mq.matches);
     mq.addEventListener("change", (e) => {
-      if (!localStorage.getItem("theme")) apply(e.matches);
+      if (!readStored()) apply(e.matches);
     });
   }
   return () => listeners.delete(cb);
 }
 
 export function setDark(dark: boolean) {
-  localStorage.setItem("theme", dark ? "dark" : "light");
+  try {
+    localStorage.setItem("theme", dark ? "dark" : "light");
+  } catch {
+    /* storage blocked: theme still switches for this visit */
+  }
   apply(dark);
 }
 

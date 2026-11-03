@@ -22,7 +22,6 @@ import { CityMap } from "@/components/map/CityMap";
 import { ModeIcon, ProviderBadge } from "@/components/trip/ProviderBadge";
 import {
   applyAlerts,
-  buildOptions,
   formatDuration,
   generateFleet,
   markPareto,
@@ -32,7 +31,7 @@ import {
 } from "@/lib/mobility/engine";
 import { useServiceAlerts } from "@/lib/mobility/alerts";
 import { TriangleAlert } from "lucide-react";
-import { searchTrips } from "@/lib/mobility/backend.functions";
+import { useTripOptions } from "@/lib/mobility/tripOptions";
 import { DemandPanel } from "@/components/trip/DemandPanel";
 import { useDemandForecast, type Horizon } from "@/lib/mobility/demand";
 import { PLACES, placeById, type LatLng } from "@/lib/mobility/geo";
@@ -113,16 +112,22 @@ function Home() {
   const set = (patch: Partial<typeof search>) =>
     navigate({ search: (s) => ({ ...s, ...patch }), replace: true });
 
+  // Latest-wins: a slow map lookup must not overwrite a place chosen afterwards.
+  const pickSeq = useRef(0);
   const onPickPoint = (p: LatLng) => {
     if (!picking) return;
     const which = picking;
     setPicking(null);
-    reversePlace(p.lat, p.lng).then((pl) => applyPlace(which, pl));
+    const seq = ++pickSeq.current;
+    reversePlace(p.lat, p.lng)
+      .then((pl) => seq === pickSeq.current && applyPlace(which, pl))
+      .catch(() => {});
   };
 
   const setStops = (ids: string[]) =>
     set({ stops: ids.length ? ids.join("|") : undefined, alt: undefined });
   const applyPlace = (which: string, pl: Place) => {
+    pickSeq.current++;
     if (which === "from") set({ from: pl.id, alt: undefined });
     else if (which === "to") set({ to: pl.id, alt: undefined });
     else {
@@ -203,7 +208,7 @@ function Home() {
                 label="From"
                 place={origin}
                 placeholder="Start address"
-                onSelect={(p) => set({ from: p.id })}
+                onSelect={(p) => applyPlace("from", p)}
                 onMap={() => setPicking("from")}
                 picking={picking === "from"}
               />
@@ -232,7 +237,7 @@ function Home() {
                 label="To"
                 place={dest}
                 placeholder="Where to?"
-                onSelect={(p) => set({ to: p.id, alt: undefined })}
+                onSelect={(p) => applyPlace("to", p)}
                 onMap={() => setPicking("to")}
                 picking={picking === "to"}
               />
@@ -289,6 +294,11 @@ function Home() {
             else if (dy > 25) setExpanded(false);
             else setExpanded((v) => !v);
           }}
+          onClick={(e) => {
+            // Keyboard / screen reader activation (pointer taps are handled above).
+            if (e.detail === 0) setExpanded((v) => !v);
+          }}
+          aria-expanded={expanded}
           className="flex w-full shrink-0 touch-none justify-center pb-1 pt-3 md:hidden"
           aria-label={expanded ? "Collapse results" : "Expand results"}
         >
@@ -504,6 +514,13 @@ function PlaceInput({
   const [q, setQ] = useState(place?.name ?? "");
   const [focus, setFocus] = useState(false);
   const [results, setResults] = useState<Place[]>([]);
+  const [hi, setHi] = useState(-1);
+  const listId = `place-list-${label}`;
+  const choose = (r: Place) => {
+    onSelect(r);
+    setQ(r.name);
+    (document.activeElement as HTMLElement | null)?.blur();
+  };
   useEffect(() => setQ(place?.name ?? ""), [place?.id]);
   useEffect(() => {
     if (!focus) return;
@@ -527,7 +544,30 @@ function PlaceInput({
           aria-label={label}
           value={q}
           placeholder={placeholder}
-          onChange={(e) => setQ(e.target.value)}
+          role="combobox"
+          aria-expanded={focus && results.length > 0}
+          aria-controls={listId}
+          aria-activedescendant={hi >= 0 ? `${listId}-${hi}` : undefined}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setHi(-1);
+          }}
+          onKeyDown={(e) => {
+            if (!results.length) return;
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setHi((h) => (h + 1) % results.length);
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setHi((h) => (h <= 0 ? results.length - 1 : h - 1));
+            } else if (e.key === "Enter") {
+              e.preventDefault();
+              const r = results[hi >= 0 ? hi : 0];
+              if (r) choose(r);
+            } else if (e.key === "Escape") {
+              (e.target as HTMLElement).blur();
+            }
+          }}
           onFocus={(e) => {
             setFocus(true);
             e.target.select();
@@ -547,17 +587,16 @@ function PlaceInput({
         </button>
       </div>
       {focus && results.length > 0 && (
-        <ul className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-2xl border border-border bg-popover shadow-lg">
-          {results.map((r) => (
-            <li key={r.id}>
+        <ul id={listId} role="listbox" className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-2xl border border-border bg-popover shadow-lg">
+          {results.map((r, i) => (
+            <li key={r.id} id={`${listId}-${i}`} role="option" aria-selected={i === hi}>
               <button
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  onSelect(r);
-                  setQ(r.name);
-                  (document.activeElement as HTMLElement | null)?.blur();
+                  choose(r);
                 }}
-                className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-accent"
+                tabIndex={-1}
+                className={`flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-accent ${i === hi ? "bg-accent" : ""}`}
               >
                 <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 <span className="min-w-0">
