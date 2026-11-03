@@ -14,7 +14,8 @@ import { ArrowLeft, Leaf, Navigation, Star, X } from "lucide-react";
 import { CityMap } from "@/components/map/CityMap";
 import { ModeIcon, ProviderBadge } from "@/components/trip/ProviderBadge";
 import { LiveTripSheet } from "@/components/trip/LiveTripSheet";
-import { applyAlerts, buildOptions, formatDuration, type Segment } from "@/lib/mobility/engine";
+import { useTripOptions } from "@/lib/mobility/tripOptions";
+import { applyAlerts, formatDuration, type Segment } from "@/lib/mobility/engine";
 import { computeProgress, useLiveClock } from "@/lib/mobility/liveTrip";
 import { useServiceAlerts } from "@/lib/mobility/alerts";
 import { placeById, type Place } from "@/lib/mobility/geo";
@@ -49,14 +50,10 @@ function TripDetail() {
   const tick = useTick();
   const from = search.from ?? "hbf";
   const alerts = useServiceAlerts();
+  const base = useTripOptions(from, search.to, parseStops(search.stops), tick);
   const option = useMemo(
-    () =>
-      search.to
-        ? applyAlerts(buildOptions(from, search.to, tick, parseStops(search.stops)), alerts).find(
-            (o) => o.id === optionId,
-          )
-        : undefined,
-    [from, search.to, tick, optionId, search.stops, alerts],
+    () => applyAlerts(base, alerts).find((o) => o.id === optionId),
+    [base, optionId, alerts],
   );
 
   const road = useRoadSegments(option?.segments, search.alt ?? 0);
@@ -67,7 +64,9 @@ function TripDetail() {
   const startLive = () => {
     if (!option) return;
     setPaused(false);
-    setLiveSegs((road.ready ? road.segments : undefined) ?? option.segments);
+    // Street paths from the router, but current (alert-adjusted) timings from the option.
+    const paths = road.ready ? road.segments : undefined;
+    setLiveSegs(option.segments.map((s, i) => ({ ...s, path: paths?.[i]?.path ?? s.path })));
   };
   const endLive = () => setLiveSegs(null);
   const saving = useMemo(
@@ -122,8 +121,19 @@ function TripDetail() {
       return;
     }
     // Backend unreachable: open the provider directly (untracked).
-    const t = setTimeout(() => window.open(option.deepLink.web, "_blank"), 900);
-    window.addEventListener("blur", () => clearTimeout(t), { once: true });
+    // Only fall back to the website if the app didn't open (page stayed visible).
+    const web = option.deepLink.web;
+    const cancel = () => {
+      clearTimeout(t);
+      window.removeEventListener("blur", cancel);
+      document.removeEventListener("visibilitychange", cancel);
+    };
+    const t = setTimeout(() => {
+      cancel();
+      if (document.visibilityState === "visible" && document.hasFocus()) window.open(web, "_blank");
+    }, 1200);
+    window.addEventListener("blur", cancel);
+    document.addEventListener("visibilitychange", cancel);
     window.location.href = option.deepLink.app;
   };
 

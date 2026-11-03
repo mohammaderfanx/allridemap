@@ -445,7 +445,14 @@ export function CityMap({
   }, []);
 
   // fit the selected route
-  const fitKey = (activeSegments ?? []).map((s) => `${s.path.length}:${s.path[0]?.lat}`).join("|");
+  const fitKey = (activeSegments ?? [])
+    .map((s) => {
+      const a = s.path[0],
+        b = s.path[s.path.length - 1],
+        m = s.path[Math.floor(s.path.length / 2)];
+      return [a, m, b].map((p) => (p ? `${p.lat.toFixed(5)},${p.lng.toFixed(5)}` : "")).join(";") + `:${s.path.length}`;
+    })
+    .join("|");
   useEffect(() => {
     const pts = (activeSegments ?? []).flatMap((s) => s.path);
     if (!pts.length) return;
