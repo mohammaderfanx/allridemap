@@ -506,8 +506,14 @@ export function applyAlerts(options: TripOption[], alerts: ServiceAlert[]): Trip
   return options.map((o) => {
     const a = o.lineCode ? alerts.find((x) => x.affected_lines.includes(o.lineCode!)) : undefined;
     if (!a) return o;
+    // Put the delay on the first transit leg so step timings (live mode) match the total.
+    const ti = o.segments.findIndex((s) => s.mode === "transit");
+    const segments = o.segments.map((s, i) =>
+      i === (ti >= 0 ? ti : 0) ? { ...s, durationMin: s.durationMin + a.delay_minutes } : s,
+    );
     return {
       ...o,
+      segments,
       durationMin: o.durationMin + a.delay_minutes,
       departsInMin: o.departsInMin + a.delay_minutes,
       availability: `+${a.delay_minutes} min delay · ${o.availability}`,
