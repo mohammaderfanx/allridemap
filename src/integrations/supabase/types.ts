@@ -144,6 +144,39 @@ export type Database = {
         }
         Relationships: []
       }
+      intercity_corridor_routes: {
+        Row: {
+          corridor_code: string
+          destination_hub_code: string
+          id: string
+          origin_hub_code: string
+          provider_code: string
+          realtime_reliability_score: number
+          transport_mode: Database["public"]["Enums"]["intercity_mode"]
+          updated_at: string
+        }
+        Insert: {
+          corridor_code: string
+          destination_hub_code: string
+          id?: string
+          origin_hub_code: string
+          provider_code: string
+          realtime_reliability_score?: number
+          transport_mode: Database["public"]["Enums"]["intercity_mode"]
+          updated_at?: string
+        }
+        Update: {
+          corridor_code?: string
+          destination_hub_code?: string
+          id?: string
+          origin_hub_code?: string
+          provider_code?: string
+          realtime_reliability_score?: number
+          transport_mode?: Database["public"]["Enums"]["intercity_mode"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       provider_integrations: {
         Row: {
           affiliate_tag: string | null
@@ -217,6 +250,7 @@ export type Database = {
     Enums: {
       alert_severity: "info" | "warning" | "severe"
       conversion_status: "initiated" | "completed" | "cancelled"
+      intercity_mode: "high_speed_rail" | "aviation" | "evtol" | "intercity_bus"
       provider_category: "Ride-Hailing" | "Micro-Mobility" | "Public-Transit"
       provider_status: "active" | "degraded" | "offline"
     }
@@ -348,6 +382,7 @@ export const Constants = {
     Enums: {
       alert_severity: ["info", "warning", "severe"],
       conversion_status: ["initiated", "completed", "cancelled"],
+      intercity_mode: ["high_speed_rail", "aviation", "evtol", "intercity_bus"],
       provider_category: ["Ride-Hailing", "Micro-Mobility", "Public-Transit"],
       provider_status: ["active", "degraded", "offline"],
     },
