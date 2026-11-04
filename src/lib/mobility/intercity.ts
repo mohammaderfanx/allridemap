@@ -107,8 +107,8 @@ export type Itinerary = {
   bufferMin: number;
   /** probability (0..1) the main connection is made */
   connectionRisk: number;
-  evtol?: { checkinMin: number; chargingDelayMin: number; luggageLimitKg: number; seatsLeft: number };
-  airport?: { securityWaitMin: number; checkinCloseMin: number };
+  evtol?: { checkinMin: number; chargingDelayMin: number; luggageLimitKg: number; seatsLeft: number } | undefined;
+  airport?: { securityWaitMin: number; checkinCloseMin: number } | undefined;
 };
 
 const MIN = 60_000;

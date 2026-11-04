@@ -9,7 +9,8 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 - Trip searches go through `searchTrips` (src/lib/mobility/backend.functions.ts), which caches option snapshots in Lovable Cloud for 60s; why: shared low-cost results with graceful local fallback.
-- "Continue with" handoffs call `trackHandoff`, which logs a conversion and builds links from provider templates stored in the database; why: affiliate tags and links editable without code changes.
+- The trip list and trip page both read options via `useTripOptions` (src/lib/mobility/tripOptions.ts), sharing one server snapshot; why: fares and times must match between list and detail.
 - Live transit delays come from the `gtfs_rt_service_alerts` table via `useServiceAlerts` and are applied client-side with `applyAlerts`; why: the source can be swapped for a real GTFS-RT feed without UI changes.
 - "Continue with" opens a signed, single-use, 10-minute link (`createHandoff` → /api/public/handoff); provider postbacks hit /api/public/webhooks/affiliates/$provider signed with AFFILIATE_WEBHOOK_SECRET; why: affiliate tags never reach the browser and conversions cannot be forged.
 - Demand forecasts come from `predictDemand` (src/lib/mobility/demand.ts) on H3 res-8 cells, h3-js loaded via dynamic import; why: a real model API keyed by H3 index can replace the simulated `predictCell` without UI changes.
+- Intercity trips come from `planIntercity` (src/lib/mobility/intercity.ts): UTC epoch ms internally, rendered per city time zone with Intl; corridor reliability is read from `intercity_corridor_routes`; why: schedules can be swapped for NeTEx/SIRI/NDC feeds without UI changes.
