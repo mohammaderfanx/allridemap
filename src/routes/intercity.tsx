@@ -105,7 +105,7 @@ function Intercity() {
     [city, now, reliability],
   );
   const chosen = trips.find((t) => t.id === search.trip) ?? trips[0];
-  const set = (p: { city?: string; trip?: string }) =>
+  const set = (p: { city?: string | undefined; trip?: string | undefined }) =>
     navigate({ search: (s) => ({ ...s, ...p }), replace: true });
   const cityTz = CITIES.find((c) => c.id === city)?.tz ?? "Europe/Berlin";
 

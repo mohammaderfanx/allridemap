@@ -46,8 +46,8 @@ const EMPTY: LedgerEntry[] = [];
 function isEntry(e: unknown): e is LedgerEntry {
   if (!e || typeof e !== "object") return false;
   const x = e as Record<string, unknown>;
-  return typeof x.id === "string" && typeof x.at === "string" && typeof x.provider === "string" &&
-    typeof x.co2SavedG === "number" && Number.isFinite(x.co2SavedG);
+  return typeof x["id"] === "string" && typeof x["at"] === "string" && typeof x["provider"] === "string" &&
+    typeof x["co2SavedG"] === "number" && Number.isFinite(x["co2SavedG"]);
 }
 
 /** Parses stored ledger data; anything damaged is dropped instead of crashing the page. */
