@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as IntercityRouteImport } from './routes/intercity'
 import { Route as TripOptionIdRouteImport } from './routes/trip.$optionId'
 import { Route as ApiPublicHandoffRouteImport } from './routes/api/public/handoff'
 import { Route as ApiPublicWebhooksAffiliatesProviderRouteImport } from './routes/api/public/webhooks/affiliates.$provider'
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntercityRoute = IntercityRouteImport.update({
+  id: '/intercity',
+  path: '/intercity',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TripOptionIdRoute = TripOptionIdRouteImport.update({
@@ -45,6 +51,7 @@ const ApiPublicWebhooksAffiliatesProviderRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/intercity': typeof IntercityRoute
   '/trip/$optionId': typeof TripOptionIdRoute
   '/api/public/handoff': typeof ApiPublicHandoffRoute
   '/api/public/webhooks/affiliates/$provider': typeof ApiPublicWebhooksAffiliatesProviderRoute
@@ -52,6 +59,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/intercity': typeof IntercityRoute
   '/trip/$optionId': typeof TripOptionIdRoute
   '/api/public/handoff': typeof ApiPublicHandoffRoute
   '/api/public/webhooks/affiliates/$provider': typeof ApiPublicWebhooksAffiliatesProviderRoute
@@ -60,6 +68,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/intercity': typeof IntercityRoute
   '/trip/$optionId': typeof TripOptionIdRoute
   '/api/public/handoff': typeof ApiPublicHandoffRoute
   '/api/public/webhooks/affiliates/$provider': typeof ApiPublicWebhooksAffiliatesProviderRoute
@@ -69,6 +78,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/intercity'
     | '/trip/$optionId'
     | '/api/public/handoff'
     | '/api/public/webhooks/affiliates/$provider'
@@ -76,6 +86,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/intercity'
     | '/trip/$optionId'
     | '/api/public/handoff'
     | '/api/public/webhooks/affiliates/$provider'
@@ -83,6 +94,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
+    | '/intercity'
     | '/trip/$optionId'
     | '/api/public/handoff'
     | '/api/public/webhooks/affiliates/$provider'
@@ -91,6 +103,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  IntercityRoute: typeof IntercityRoute
   TripOptionIdRoute: typeof TripOptionIdRoute
   ApiPublicHandoffRoute: typeof ApiPublicHandoffRoute
   ApiPublicWebhooksAffiliatesProviderRoute: typeof ApiPublicWebhooksAffiliatesProviderRoute
@@ -110,6 +123,13 @@ declare module '@tanstack/react-router' {
       path: '/about'
       fullPath: '/about'
       preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/intercity': {
+      id: '/intercity'
+      path: '/intercity'
+      fullPath: '/intercity'
+      preLoaderRoute: typeof IntercityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/trip/$optionId': {
@@ -139,6 +159,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  IntercityRoute: IntercityRoute,
   TripOptionIdRoute: TripOptionIdRoute,
   ApiPublicHandoffRoute: ApiPublicHandoffRoute,
   ApiPublicWebhooksAffiliatesProviderRoute:

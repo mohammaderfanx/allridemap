@@ -11,6 +11,7 @@ import {
   Search,
   Star,
   Sun,
+  TrainFront,
   X,
 } from "lucide-react";
 import { useRef } from "react";
@@ -192,6 +193,13 @@ function Home() {
               >
                 {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </button>
+              <Link
+                to="/intercity"
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Intercity trips"
+              >
+                <TrainFront className="h-4 w-4" />
+              </Link>
               <Link
                 to="/about"
                 className="text-muted-foreground hover:text-foreground"
