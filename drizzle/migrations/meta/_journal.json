@@ -36,6 +36,13 @@
       "when": 1793789978399,
       "tag": "0004_intercity_corridors",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793916841397,
+      "tag": "0005_create_phase7_pulse_tables",
+      "breakpoints": true
     }
   ]
 }
