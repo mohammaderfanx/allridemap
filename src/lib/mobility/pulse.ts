@@ -113,16 +113,23 @@ function seedReports(): PulseReport[] {
   });
 }
 
+type GamSnapshot = { xp: number; tier: TrustTier; badges: string[]; reports: number };
+
 class PulseFeed {
   private reports: PulseReport[] = [];
   private mine: PulseReport[] = [];
   private gam: GamState = { xp: 0, reports: 0, upvotes: 0, voted: [] };
   private listeners = new Set<() => void>();
   private seq = 0;
+  // Cached snapshots — useSyncExternalStore requires stable references.
+  private reportsCache: PulseReport[] = [];
+  private reportsCacheAt = 0;
+  private gamCache: GamSnapshot = { xp: 0, tier: "Newcomer", badges: [], reports: 0 };
 
   constructor() {
     if (typeof window !== "undefined") this.gam = loadGam();
     this.reports = seedReports();
+    this.recomputeGam();
   }
 
   subscribe = (cb: () => void) => {
@@ -131,7 +138,17 @@ class PulseFeed {
   };
 
   private emit() {
+    this.reportsCacheAt = 0; // invalidate
     this.listeners.forEach((l) => l());
+  }
+
+  private recomputeGam() {
+    this.gamCache = {
+      xp: this.gam.xp,
+      tier: tierForXp(this.gam.xp),
+      badges: badgesFor(this.gam.xp, this.gam.reports, this.gam.upvotes),
+      reports: this.gam.reports,
+    };
   }
 
   private persist() {
