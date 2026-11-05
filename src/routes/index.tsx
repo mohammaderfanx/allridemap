@@ -6,12 +6,17 @@ import {
   Flame,
   Info,
   MapPin,
+  Megaphone,
   Moon,
   Plus,
+  Radio,
   Search,
+  Sparkles,
   Star,
   Sun,
+  ThumbsUp,
   TrainFront,
+  Wind,
   X,
 } from "lucide-react";
 import { useRef } from "react";
@@ -38,6 +43,15 @@ import { useDemandForecast, type Horizon } from "@/lib/mobility/demand";
 import { PLACES, placeById, type LatLng } from "@/lib/mobility/geo";
 import { MODE_LABEL, PROVIDERS, type Mode } from "@/lib/mobility/providers";
 import { ALL_MODES, parseModes, parseStops, searchSchema, useTick } from "@/lib/mobility/search";
+import {
+  pulseFeed,
+  REPORT_META,
+  useGamification,
+  usePulseReports,
+  type ReportType,
+} from "@/lib/mobility/pulse";
+import { hapticDoublePulse, hapticThud, hapticTick } from "@/lib/mobility/haptics";
+import { useDiscoveryRoutes } from "@/lib/mobility/discovery";
 
 export const Route = createFileRoute("/")({
   validateSearch: searchSchema,
