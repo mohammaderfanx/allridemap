@@ -108,6 +108,72 @@ export type Database = {
           },
         ]
       }
+      community_mobility_reports: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          lat: number
+          lng: number
+          note: string | null
+          report_type: Database["public"]["Enums"]["pulse_report_type"]
+          upvotes_count: number
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          lat: number
+          lng: number
+          note?: string | null
+          report_type: Database["public"]["Enums"]["pulse_report_type"]
+          upvotes_count?: number
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          lat?: number
+          lng?: number
+          note?: string | null
+          report_type?: Database["public"]["Enums"]["pulse_report_type"]
+          upvotes_count?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      curated_discovery_routes: {
+        Row: {
+          created_at: string
+          description: string
+          eco_score: number
+          estimated_duration_mins: number
+          id: string
+          route_geojson: Json
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          eco_score?: number
+          estimated_duration_mins: number
+          id?: string
+          route_geojson: Json
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          eco_score?: number
+          estimated_duration_mins?: number
+          id?: string
+          route_geojson?: Json
+          title?: string
+        }
+        Relationships: []
+      }
       gtfs_rt_service_alerts: {
         Row: {
           affected_lines: string[]
@@ -240,6 +306,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_gamification_profiles: {
+        Row: {
+          badges_unlocked: string[]
+          trust_tier: string
+          updated_at: string
+          user_id: string
+          xp_points: number
+        }
+        Insert: {
+          badges_unlocked?: string[]
+          trust_tier?: string
+          updated_at?: string
+          user_id: string
+          xp_points?: number
+        }
+        Update: {
+          badges_unlocked?: string[]
+          trust_tier?: string
+          updated_at?: string
+          user_id?: string
+          xp_points?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -253,6 +343,13 @@ export type Database = {
       intercity_mode: "high_speed_rail" | "aviation" | "evtol" | "intercity_bus"
       provider_category: "Ride-Hailing" | "Micro-Mobility" | "Public-Transit"
       provider_status: "active" | "degraded" | "offline"
+      pulse_report_type:
+        | "scooter_damaged"
+        | "station_elevator_broken"
+        | "high_crowding"
+        | "police_check"
+        | "custom_shortcut"
+        | "surge_pricing"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -385,6 +482,14 @@ export const Constants = {
       intercity_mode: ["high_speed_rail", "aviation", "evtol", "intercity_bus"],
       provider_category: ["Ride-Hailing", "Micro-Mobility", "Public-Transit"],
       provider_status: ["active", "degraded", "offline"],
+      pulse_report_type: [
+        "scooter_damaged",
+        "station_elevator_broken",
+        "high_crowding",
+        "police_check",
+        "custom_shortcut",
+        "surge_pricing",
+      ],
     },
   },
 } as const

@@ -6,12 +6,17 @@ import {
   Flame,
   Info,
   MapPin,
+  Megaphone,
   Moon,
   Plus,
+  Radio,
   Search,
+  Sparkles,
   Star,
   Sun,
+  ThumbsUp,
   TrainFront,
+  Wind,
   X,
 } from "lucide-react";
 import { useRef } from "react";
@@ -38,6 +43,15 @@ import { useDemandForecast, type Horizon } from "@/lib/mobility/demand";
 import { PLACES, placeById, type LatLng } from "@/lib/mobility/geo";
 import { MODE_LABEL, PROVIDERS, type Mode } from "@/lib/mobility/providers";
 import { ALL_MODES, parseModes, parseStops, searchSchema, useTick } from "@/lib/mobility/search";
+import {
+  pulseFeed,
+  REPORT_META,
+  useGamification,
+  usePulseReports,
+  type ReportType,
+} from "@/lib/mobility/pulse";
+import { hapticDoublePulse, hapticThud, hapticTick } from "@/lib/mobility/haptics";
+import { useDiscoveryRoutes } from "@/lib/mobility/discovery";
 
 export const Route = createFileRoute("/")({
   validateSearch: searchSchema,
@@ -74,6 +88,12 @@ function Home() {
   const [picking, setPicking] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(true);
+  const [pulseOn, setPulseOn] = useState(true);
+  const [reportMode, setReportMode] = useState(false);
+  const [reportDraft, setReportDraft] = useState<LatLng | null>(null);
+  const pulseReports = usePulseReports();
+  const gam = useGamification();
+  const discoveryRoutes = useDiscoveryRoutes();
 
   const from = search.from ?? "hbf";
   const to = search.to;
@@ -116,6 +136,12 @@ function Home() {
   // Latest-wins: a slow map lookup must not overwrite a place chosen afterwards.
   const pickSeq = useRef(0);
   const onPickPoint = (p: LatLng) => {
+    if (reportMode) {
+      setReportMode(false);
+      setReportDraft(p);
+      hapticTick();
+      return;
+    }
     if (!picking) return;
     const which = picking;
     setPicking(null);
@@ -168,6 +194,8 @@ function Home() {
         visibleProviders={visibleProviders}
         onPickPoint={onPickPoint}
         heatmap={heatOn ? heatCells : undefined}
+        reports={pulseOn ? pulseReports : []}
+        cinematic={!!dest}
       />
 
       {/* Search card */}
@@ -178,6 +206,33 @@ function Home() {
               All<span className="text-primary">Ride</span>
             </span>
             <div className="flex items-center gap-3">
+              <span
+                className="hidden items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary sm:flex"
+                title={`${gam.xp} XP · ${gam.badges.length} badges`}
+              >
+                <Sparkles className="h-3 w-3" />
+                {gam.tier} · {gam.xp}
+              </span>
+              <button
+                onClick={() => {
+                  hapticTick();
+                  setReportMode((v) => !v);
+                  setReportDraft(null);
+                }}
+                aria-label="Drop a community report on the map"
+                aria-pressed={reportMode}
+                className={reportMode ? "text-primary" : "text-muted-foreground hover:text-foreground"}
+              >
+                <Megaphone className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setPulseOn(!pulseOn)}
+                aria-label={pulseOn ? "Hide community pulse" : "Show community pulse"}
+                aria-pressed={pulseOn}
+                className={pulseOn ? "text-primary" : "text-muted-foreground hover:text-foreground"}
+              >
+                <Radio className="h-4 w-4" />
+              </button>
               <button
                 onClick={() => setHeatOn(!heatOn)}
                 aria-label={heatOn ? "Hide demand forecast" : "Show demand forecast"}
@@ -279,7 +334,62 @@ function Home() {
               {picking === "from" ? "start" : picking === "to" ? "destination" : "stop"}
             </p>
           )}
+          {reportMode && (
+            <p className="mt-2 px-1 text-xs font-medium text-primary">
+              Tap the map where you want to drop your report
+            </p>
+          )}
         </div>
+      </div>
+
+      {/* Report type picker after a map tap */}
+      {reportDraft && (
+        <div className="absolute left-1/2 top-1/2 z-20 w-[280px] -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-border/60 bg-frost p-3 shadow-lg backdrop-blur-xl">
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-foreground">What's happening here?</h3>
+            <button
+              onClick={() => setReportDraft(null)}
+              aria-label="Cancel report"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {(Object.keys(REPORT_META) as ReportType[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => {
+                  pulseFeed.addReport(t, reportDraft.lat, reportDraft.lng);
+                  hapticDoublePulse();
+                  setReportDraft(null);
+                }}
+                className="flex items-center gap-2 rounded-xl bg-card px-2.5 py-2 text-left text-xs font-semibold text-foreground transition-colors hover:bg-accent"
+              >
+                <span aria-hidden>{REPORT_META[t].emoji}</span>
+                {REPORT_META[t].label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-center text-[10px] text-muted-foreground">
+            +10 XP · visible for 15 minutes
+          </p>
+        </div>
+      )}
+
+      {/* Live micro-widgets */}
+      <div className="absolute left-3 top-3 z-[5] mt-[188px] flex flex-col gap-1.5 md:left-auto md:right-3 md:top-20 md:mt-0">
+        <span className="flex items-center gap-1.5 self-start rounded-full border border-border/60 bg-frost px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur-xl">
+          <Wind className="h-3 w-3 text-primary" /> AQI 38 · Good
+        </span>
+        <span className="flex items-center gap-1.5 self-start rounded-full border border-border/60 bg-frost px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur-xl">
+          🛴 {fleet.filter((v) => v.mode === "scooter").length} scooters nearby
+        </span>
+        {pulseOn && pulseReports.length > 0 && (
+          <span className="flex items-center gap-1.5 self-start rounded-full border border-border/60 bg-frost px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur-xl">
+            <Radio className="h-3 w-3 text-primary" /> {pulseReports.length} live reports
+          </span>
+        )}
       </div>
 
       {/* Results sheet */}
@@ -298,6 +408,7 @@ function Home() {
             dragY.current = null;
             if (start === null) return;
             const dy = e.clientY - start;
+            hapticTick();
             if (dy < -25) setExpanded(true);
             else if (dy > 25) setExpanded(false);
             else setExpanded((v) => !v);
@@ -414,6 +525,83 @@ function Home() {
           </div>
         )}
         <div className="flex-1 space-y-2 overflow-y-auto px-3 pb-4">
+          {!dest && (
+            <>
+              <h3 className="flex items-center gap-1.5 px-1 pt-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                <Sparkles className="h-3.5 w-3.5 text-primary" /> Explore Stuttgart in 15 min
+              </h3>
+              {discoveryRoutes.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => {
+                    hapticThud();
+                    const mids = r.stops.slice(1, -1).map((p) => p.id);
+                    set({
+                      from: r.stops[0]!.id,
+                      to: r.stops[r.stops.length - 1]!.id,
+                      stops: mids.length ? mids.join("|") : undefined,
+                      alt: undefined,
+                    });
+                  }}
+                  className="w-full rounded-2xl border border-border/60 bg-card p-3 text-left transition-colors hover:bg-accent"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-bold text-foreground">{r.title}</span>
+                    <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                      {r.durationMin} min · eco {r.ecoScore.toFixed(1)}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{r.description}</p>
+                  <p className="mt-1 text-[11px] font-medium text-muted-foreground">
+                    {r.stops.map((p) => p.name).join(" → ")}
+                  </p>
+                </button>
+              ))}
+              {pulseOn && pulseReports.length > 0 && (
+                <>
+                  <h3 className="flex items-center gap-1.5 px-1 pt-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                    <Radio className="h-3.5 w-3.5 text-primary" /> AllRide Pulse
+                  </h3>
+                  {pulseReports.map((r) => (
+                    <div
+                      key={r.id}
+                      className="flex items-center gap-2.5 rounded-2xl bg-card p-2.5"
+                    >
+                      <span className="text-lg" aria-hidden>
+                        {REPORT_META[r.type].emoji}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold text-foreground">
+                          {REPORT_META[r.type].label}
+                          {r.mine && <span className="ml-1 text-primary">· yours</span>}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">
+                          fades in {Math.max(1, Math.round((r.expiresAt - Date.now()) / 60000))} min
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (pulseFeed.upvote(r.id)) hapticDoublePulse();
+                        }}
+                        disabled={pulseFeed.hasVoted(r.id)}
+                        aria-label={`Confirm report: ${REPORT_META[r.type].label}`}
+                        className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
+                          pulseFeed.hasVoted(r.id)
+                            ? "bg-primary/10 text-primary"
+                            : "bg-muted text-foreground hover:bg-accent"
+                        }`}
+                      >
+                        <ThumbsUp className="h-3 w-3" /> {r.upvotes}
+                      </button>
+                    </div>
+                  ))}
+                </>
+              )}
+              <h3 className="px-1 pt-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                Popular places
+              </h3>
+            </>
+          )}
           {!dest &&
             PLACES.filter((p) => p.id !== from)
               .slice(0, 8)
@@ -441,7 +629,10 @@ function Home() {
             return (
               <div
                 key={o.id}
-                onClick={() => setSelected(o.id)}
+                onClick={() => {
+                  if (active?.id !== o.id) hapticThud();
+                  setSelected(o.id);
+                }}
                 className={`cursor-pointer rounded-2xl border bg-card p-3 transition-all ${isActive ? "border-primary ring-2 ring-primary/20" : "border-transparent hover:border-border"}`}
               >
                 <div className="flex items-center gap-3">

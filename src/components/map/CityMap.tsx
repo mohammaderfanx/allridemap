@@ -4,6 +4,7 @@ import type { Map as MLMap } from "maplibre-gl";
 import type { LatLng, Place } from "@/lib/mobility/geo";
 import type { Segment, Vehicle } from "@/lib/mobility/engine";
 import { vehicleFeed, type LiveVehicle } from "@/lib/mobility/simulation";
+import { REPORT_META, type PulseReport } from "@/lib/mobility/pulse";
 
 type Logo = { bg: string; fg: string; text: string; border?: string; round?: boolean };
 function logoFor(providerId: string, dark: boolean, label?: string): Logo {
@@ -91,6 +92,8 @@ export function CityMap({
   className,
   you,
   heatmap,
+  reports = [],
+  cinematic = false,
 }: {
   origin?: Place | undefined;
   destination?: Place | undefined;
@@ -107,6 +110,10 @@ export function CityMap({
   you?: LatLng | undefined;
   /** predicted demand hexagons */
   heatmap?: { boundary: LatLng[]; waitMin: number }[] | undefined;
+  /** AllRide Pulse community reports, drawn as radar pulses */
+  reports?: PulseReport[] | undefined;
+  /** tilt the camera into an immersive 3D perspective while a route is active */
+  cinematic?: boolean;
 }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const mapDivRef = useRef<HTMLDivElement | null>(null);
@@ -123,6 +130,7 @@ export function CityMap({
     onPickPoint,
     you,
     heatmap,
+    reports,
   });
   propsRef.current = {
     origin,
@@ -135,6 +143,7 @@ export function CityMap({
     onPickPoint,
     you,
     heatmap,
+    reports,
   };
   const liveRef = useRef<{ prev: Map<string, LiveVehicle>; cur: LiveVehicle[]; at: number }>({
     prev: new Map(),
@@ -203,12 +212,11 @@ export function CityMap({
         style: styleFor(),
         center: [9.1794, 48.7784],
         zoom: 12.6,
-        maxPitch: 0,
+        maxPitch: 60,
         pitchWithRotate: false,
         attributionControl: { compact: true },
       });
       map = created;
-      created.touchPitch.disable();
       created.on("click", (e) =>
         propsRef.current.onPickPoint?.({ lat: e.lngLat.lat, lng: e.lngLat.lng }),
       );
@@ -385,6 +393,50 @@ export function CityMap({
           });
         }
 
+        // AllRide Pulse: community reports as expanding radar pulses + pill badges
+        const wallNow = Date.now();
+        P.reports.forEach((r) => {
+          const [x, y] = px(r);
+          if (x < -60 || x > w + 60 || y < -60 || y > h + 60) return;
+          const life = Math.min(1, Math.max(0, (r.expiresAt - wallNow) / 180000));
+          if (life <= 0) return;
+          const meta = REPORT_META[r.type];
+          // two staggered expanding rings, fading with report age
+          for (let ring = 0; ring < 2; ring++) {
+            const phase = ((now + ring * 1200) % 2400) / 2400;
+            ctx.beginPath();
+            ctx.arc(x, y, (10 + phase * 34) * k, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(10,132,255,${(0.45 * (1 - phase) * life).toFixed(3)})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+          // pill badge: emoji + upvotes
+          ctx.font = `800 ${Math.round(11 * k)}px Manrope, ui-sans-serif, system-ui`;
+          const label = `${meta.emoji} ${r.upvotes}`;
+          const tw = ctx.measureText(label).width;
+          const pw = tw + 16 * k,
+            ph = 20 * k;
+          ctx.globalAlpha = 0.55 + 0.45 * life;
+          ctx.save();
+          ctx.shadowColor = "rgba(0,0,0,0.25)";
+          ctx.shadowBlur = 8;
+          ctx.shadowOffsetY = 2;
+          ctx.beginPath();
+          ctx.roundRect(x - pw / 2, y - ph / 2, pw, ph, ph / 2);
+          ctx.fillStyle = dark ? "rgba(24,26,32,0.92)" : "rgba(255,255,255,0.95)";
+          ctx.fill();
+          ctx.restore();
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = r.mine ? "#0a84ff" : dark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.12)";
+          ctx.stroke();
+          ctx.fillStyle = text;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(label, x, y + 0.5);
+          ctx.textBaseline = "alphabetic";
+          ctx.globalAlpha = 1;
+        });
+
         const pin = (p: LatLng, label: string, kind: "start" | "stop" | "end", n?: number) => {
           const [x, y] = px(p);
           const r = 9 * Math.min(1.4, k);
@@ -485,6 +537,24 @@ export function CityMap({
     };
     go();
   }, [fitKey]);
+
+  // Cinematic camera: tilt into an immersive perspective while a route is active.
+  useEffect(() => {
+    let tries = 0;
+    const go = () => {
+      const m = mapRef.current;
+      if (!m) {
+        if (tries++ < 20) setTimeout(go, 150);
+        return;
+      }
+      if (cinematic) {
+        m.easeTo({ pitch: 52, bearing: -14, duration: 1400, essential: true });
+      } else if (m.getPitch() !== 0 || m.getBearing() !== 0) {
+        m.easeTo({ pitch: 0, bearing: 0, duration: 900, essential: true });
+      }
+    };
+    go();
+  }, [cinematic, fitKey]);
 
   return (
     <div ref={wrapRef} className={className}>
