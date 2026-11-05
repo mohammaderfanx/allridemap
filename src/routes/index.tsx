@@ -88,6 +88,12 @@ function Home() {
   const [picking, setPicking] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(true);
+  const [pulseOn, setPulseOn] = useState(true);
+  const [reportMode, setReportMode] = useState(false);
+  const [reportDraft, setReportDraft] = useState<LatLng | null>(null);
+  const pulseReports = usePulseReports();
+  const gam = useGamification();
+  const discoveryRoutes = useDiscoveryRoutes();
 
   const from = search.from ?? "hbf";
   const to = search.to;
@@ -130,6 +136,12 @@ function Home() {
   // Latest-wins: a slow map lookup must not overwrite a place chosen afterwards.
   const pickSeq = useRef(0);
   const onPickPoint = (p: LatLng) => {
+    if (reportMode) {
+      setReportMode(false);
+      setReportDraft(p);
+      hapticTick();
+      return;
+    }
     if (!picking) return;
     const which = picking;
     setPicking(null);
