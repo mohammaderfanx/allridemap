@@ -525,6 +525,83 @@ function Home() {
           </div>
         )}
         <div className="flex-1 space-y-2 overflow-y-auto px-3 pb-4">
+          {!dest && (
+            <>
+              <h3 className="flex items-center gap-1.5 px-1 pt-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                <Sparkles className="h-3.5 w-3.5 text-primary" /> Explore Stuttgart in 15 min
+              </h3>
+              {discoveryRoutes.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => {
+                    hapticThud();
+                    const mids = r.stops.slice(1, -1).map((p) => p.id);
+                    set({
+                      from: r.stops[0]!.id,
+                      to: r.stops[r.stops.length - 1]!.id,
+                      stops: mids.length ? mids.join("|") : undefined,
+                      alt: undefined,
+                    });
+                  }}
+                  className="w-full rounded-2xl border border-border/60 bg-card p-3 text-left transition-colors hover:bg-accent"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-bold text-foreground">{r.title}</span>
+                    <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                      {r.durationMin} min · eco {r.ecoScore.toFixed(1)}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{r.description}</p>
+                  <p className="mt-1 text-[11px] font-medium text-muted-foreground">
+                    {r.stops.map((p) => p.name).join(" → ")}
+                  </p>
+                </button>
+              ))}
+              {pulseOn && pulseReports.length > 0 && (
+                <>
+                  <h3 className="flex items-center gap-1.5 px-1 pt-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                    <Radio className="h-3.5 w-3.5 text-primary" /> AllRide Pulse
+                  </h3>
+                  {pulseReports.map((r) => (
+                    <div
+                      key={r.id}
+                      className="flex items-center gap-2.5 rounded-2xl bg-card p-2.5"
+                    >
+                      <span className="text-lg" aria-hidden>
+                        {REPORT_META[r.type].emoji}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold text-foreground">
+                          {REPORT_META[r.type].label}
+                          {r.mine && <span className="ml-1 text-primary">· yours</span>}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">
+                          fades in {Math.max(1, Math.round((r.expiresAt - Date.now()) / 60000))} min
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (pulseFeed.upvote(r.id)) hapticDoublePulse();
+                        }}
+                        disabled={pulseFeed.hasVoted(r.id)}
+                        aria-label={`Confirm report: ${REPORT_META[r.type].label}`}
+                        className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
+                          pulseFeed.hasVoted(r.id)
+                            ? "bg-primary/10 text-primary"
+                            : "bg-muted text-foreground hover:bg-accent"
+                        }`}
+                      >
+                        <ThumbsUp className="h-3 w-3" /> {r.upvotes}
+                      </button>
+                    </div>
+                  ))}
+                </>
+              )}
+              <h3 className="px-1 pt-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                Popular places
+              </h3>
+            </>
+          )}
           {!dest &&
             PLACES.filter((p) => p.id !== from)
               .slice(0, 8)
