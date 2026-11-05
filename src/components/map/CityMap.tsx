@@ -92,6 +92,8 @@ export function CityMap({
   className,
   you,
   heatmap,
+  reports = [],
+  cinematic = false,
 }: {
   origin?: Place | undefined;
   destination?: Place | undefined;
@@ -108,6 +110,10 @@ export function CityMap({
   you?: LatLng | undefined;
   /** predicted demand hexagons */
   heatmap?: { boundary: LatLng[]; waitMin: number }[] | undefined;
+  /** AllRide Pulse community reports, drawn as radar pulses */
+  reports?: PulseReport[] | undefined;
+  /** tilt the camera into an immersive 3D perspective while a route is active */
+  cinematic?: boolean;
 }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const mapDivRef = useRef<HTMLDivElement | null>(null);
