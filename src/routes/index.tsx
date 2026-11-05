@@ -408,6 +408,7 @@ function Home() {
             dragY.current = null;
             if (start === null) return;
             const dy = e.clientY - start;
+            hapticTick();
             if (dy < -25) setExpanded(true);
             else if (dy > 25) setExpanded(false);
             else setExpanded((v) => !v);
@@ -551,7 +552,10 @@ function Home() {
             return (
               <div
                 key={o.id}
-                onClick={() => setSelected(o.id)}
+                onClick={() => {
+                  if (active?.id !== o.id) hapticThud();
+                  setSelected(o.id);
+                }}
                 className={`cursor-pointer rounded-2xl border bg-card p-3 transition-all ${isActive ? "border-primary ring-2 ring-primary/20" : "border-transparent hover:border-border"}`}
               >
                 <div className="flex items-center gap-3">
