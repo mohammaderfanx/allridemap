@@ -334,7 +334,62 @@ function Home() {
               {picking === "from" ? "start" : picking === "to" ? "destination" : "stop"}
             </p>
           )}
+          {reportMode && (
+            <p className="mt-2 px-1 text-xs font-medium text-primary">
+              Tap the map where you want to drop your report
+            </p>
+          )}
         </div>
+      </div>
+
+      {/* Report type picker after a map tap */}
+      {reportDraft && (
+        <div className="absolute left-1/2 top-1/2 z-20 w-[280px] -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-border/60 bg-frost p-3 shadow-lg backdrop-blur-xl">
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-foreground">What's happening here?</h3>
+            <button
+              onClick={() => setReportDraft(null)}
+              aria-label="Cancel report"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {(Object.keys(REPORT_META) as ReportType[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => {
+                  pulseFeed.addReport(t, reportDraft.lat, reportDraft.lng);
+                  hapticDoublePulse();
+                  setReportDraft(null);
+                }}
+                className="flex items-center gap-2 rounded-xl bg-card px-2.5 py-2 text-left text-xs font-semibold text-foreground transition-colors hover:bg-accent"
+              >
+                <span aria-hidden>{REPORT_META[t].emoji}</span>
+                {REPORT_META[t].label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-center text-[10px] text-muted-foreground">
+            +10 XP · visible for 15 minutes
+          </p>
+        </div>
+      )}
+
+      {/* Live micro-widgets */}
+      <div className="absolute left-3 top-3 z-[5] mt-[188px] flex flex-col gap-1.5 md:left-auto md:right-3 md:top-20 md:mt-0">
+        <span className="flex items-center gap-1.5 self-start rounded-full border border-border/60 bg-frost px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur-xl">
+          <Wind className="h-3 w-3 text-primary" /> AQI 38 · Good
+        </span>
+        <span className="flex items-center gap-1.5 self-start rounded-full border border-border/60 bg-frost px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur-xl">
+          🛴 {fleet.filter((v) => v.mode === "scooter").length} scooters nearby
+        </span>
+        {pulseOn && pulseReports.length > 0 && (
+          <span className="flex items-center gap-1.5 self-start rounded-full border border-border/60 bg-frost px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur-xl">
+            <Radio className="h-3 w-3 text-primary" /> {pulseReports.length} live reports
+          </span>
+        )}
       </div>
 
       {/* Results sheet */}
