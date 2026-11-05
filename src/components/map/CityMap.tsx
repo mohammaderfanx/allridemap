@@ -393,6 +393,50 @@ export function CityMap({
           });
         }
 
+        // AllRide Pulse: community reports as expanding radar pulses + pill badges
+        const wallNow = Date.now();
+        P.reports.forEach((r) => {
+          const [x, y] = px(r);
+          if (x < -60 || x > w + 60 || y < -60 || y > h + 60) return;
+          const life = Math.min(1, Math.max(0, (r.expiresAt - wallNow) / 180000));
+          if (life <= 0) return;
+          const meta = REPORT_META[r.type];
+          // two staggered expanding rings, fading with report age
+          for (let ring = 0; ring < 2; ring++) {
+            const phase = ((now + ring * 1200) % 2400) / 2400;
+            ctx.beginPath();
+            ctx.arc(x, y, (10 + phase * 34) * k, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(10,132,255,${(0.45 * (1 - phase) * life).toFixed(3)})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+          // pill badge: emoji + upvotes
+          ctx.font = `800 ${Math.round(11 * k)}px Manrope, ui-sans-serif, system-ui`;
+          const label = `${meta.emoji} ${r.upvotes}`;
+          const tw = ctx.measureText(label).width;
+          const pw = tw + 16 * k,
+            ph = 20 * k;
+          ctx.globalAlpha = 0.55 + 0.45 * life;
+          ctx.save();
+          ctx.shadowColor = "rgba(0,0,0,0.25)";
+          ctx.shadowBlur = 8;
+          ctx.shadowOffsetY = 2;
+          ctx.beginPath();
+          ctx.roundRect(x - pw / 2, y - ph / 2, pw, ph, ph / 2);
+          ctx.fillStyle = dark ? "rgba(24,26,32,0.92)" : "rgba(255,255,255,0.95)";
+          ctx.fill();
+          ctx.restore();
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = r.mine ? "#0a84ff" : dark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.12)";
+          ctx.stroke();
+          ctx.fillStyle = text;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(label, x, y + 0.5);
+          ctx.textBaseline = "alphabetic";
+          ctx.globalAlpha = 1;
+        });
+
         const pin = (p: LatLng, label: string, kind: "start" | "stop" | "end", n?: number) => {
           const [x, y] = px(p);
           const r = 9 * Math.min(1.4, k);
