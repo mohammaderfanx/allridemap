@@ -88,7 +88,7 @@ function seedReports(): PulseReport[] {
   const defs: [ReportType, string, number][] = [
     ["scooter_damaged", "marienplatz", 4],
     ["high_crowding", "hbf", 9],
-    ["station_elevator_broken", "charlottenplatz", 6],
+    ["station_elevator_broken", "pragsattel", 6],
     ["custom_shortcut", "feuersee", 12],
     ["surge_pricing", "schlossplatz", 2],
     ["police_check", "ostendplatz", 7],

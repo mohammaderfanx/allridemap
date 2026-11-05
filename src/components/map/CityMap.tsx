@@ -4,6 +4,7 @@ import type { Map as MLMap } from "maplibre-gl";
 import type { LatLng, Place } from "@/lib/mobility/geo";
 import type { Segment, Vehicle } from "@/lib/mobility/engine";
 import { vehicleFeed, type LiveVehicle } from "@/lib/mobility/simulation";
+import { REPORT_META, type PulseReport } from "@/lib/mobility/pulse";
 
 type Logo = { bg: string; fg: string; text: string; border?: string; round?: boolean };
 function logoFor(providerId: string, dark: boolean, label?: string): Logo {
