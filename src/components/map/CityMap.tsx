@@ -130,6 +130,7 @@ export function CityMap({
     onPickPoint,
     you,
     heatmap,
+    reports,
   });
   propsRef.current = {
     origin,
@@ -142,6 +143,7 @@ export function CityMap({
     onPickPoint,
     you,
     heatmap,
+    reports,
   };
   const liveRef = useRef<{ prev: Map<string, LiveVehicle>; cur: LiveVehicle[]; at: number }>({
     prev: new Map(),
@@ -210,12 +212,11 @@ export function CityMap({
         style: styleFor(),
         center: [9.1794, 48.7784],
         zoom: 12.6,
-        maxPitch: 0,
+        maxPitch: 60,
         pitchWithRotate: false,
         attributionControl: { compact: true },
       });
       map = created;
-      created.touchPitch.disable();
       created.on("click", (e) =>
         propsRef.current.onPickPoint?.({ lat: e.lngLat.lat, lng: e.lngLat.lng }),
       );
