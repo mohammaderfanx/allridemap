@@ -538,6 +538,24 @@ export function CityMap({
     go();
   }, [fitKey]);
 
+  // Cinematic camera: tilt into an immersive perspective while a route is active.
+  useEffect(() => {
+    let tries = 0;
+    const go = () => {
+      const m = mapRef.current;
+      if (!m) {
+        if (tries++ < 20) setTimeout(go, 150);
+        return;
+      }
+      if (cinematic) {
+        m.easeTo({ pitch: 52, bearing: -14, duration: 1400, essential: true });
+      } else if (m.getPitch() !== 0 || m.getBearing() !== 0) {
+        m.easeTo({ pitch: 0, bearing: 0, duration: 900, essential: true });
+      }
+    };
+    go();
+  }, [cinematic, fitKey]);
+
   return (
     <div ref={wrapRef} className={className}>
       <div ref={mapDivRef} style={{ position: "absolute", inset: 0 }} />
