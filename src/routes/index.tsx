@@ -194,6 +194,8 @@ function Home() {
         visibleProviders={visibleProviders}
         onPickPoint={onPickPoint}
         heatmap={heatOn ? heatCells : undefined}
+        reports={pulseOn ? pulseReports : []}
+        cinematic={!!dest}
       />
 
       {/* Search card */}
@@ -204,6 +206,33 @@ function Home() {
               All<span className="text-primary">Ride</span>
             </span>
             <div className="flex items-center gap-3">
+              <span
+                className="hidden items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary sm:flex"
+                title={`${gam.xp} XP · ${gam.badges.length} badges`}
+              >
+                <Sparkles className="h-3 w-3" />
+                {gam.tier} · {gam.xp}
+              </span>
+              <button
+                onClick={() => {
+                  hapticTick();
+                  setReportMode((v) => !v);
+                  setReportDraft(null);
+                }}
+                aria-label="Drop a community report on the map"
+                aria-pressed={reportMode}
+                className={reportMode ? "text-primary" : "text-muted-foreground hover:text-foreground"}
+              >
+                <Megaphone className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setPulseOn(!pulseOn)}
+                aria-label={pulseOn ? "Hide community pulse" : "Show community pulse"}
+                aria-pressed={pulseOn}
+                className={pulseOn ? "text-primary" : "text-muted-foreground hover:text-foreground"}
+              >
+                <Radio className="h-4 w-4" />
+              </button>
               <button
                 onClick={() => setHeatOn(!heatOn)}
                 aria-label={heatOn ? "Hide demand forecast" : "Show demand forecast"}
