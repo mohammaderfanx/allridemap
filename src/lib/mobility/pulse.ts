@@ -247,10 +247,5 @@ export function usePulseReports() {
 }
 
 export function useGamification() {
-  return useSyncExternalStore(pulseFeed.subscribe, pulseFeed.getGamification, () => ({
-    xp: 0,
-    tier: "Newcomer" as TrustTier,
-    badges: [] as string[],
-    reports: 0,
-  }));
+  return useSyncExternalStore(pulseFeed.subscribe, pulseFeed.getGamification, () => EMPTY_GAM);
 }
