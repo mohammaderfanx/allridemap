@@ -115,30 +115,62 @@ function seedReports(): PulseReport[] {
 
 type GamSnapshot = { xp: number; tier: TrustTier; badges: string[]; reports: number };
 
+// Stable server snapshots — never allocate inside getServerSnapshot.
+const EMPTY_REPORTS: PulseReport[] = [];
+const EMPTY_GAM: GamSnapshot = { xp: 0, tier: "Newcomer", badges: [], reports: 0 };
+
 class PulseFeed {
   private reports: PulseReport[] = [];
   private mine: PulseReport[] = [];
   private gam: GamState = { xp: 0, reports: 0, upvotes: 0, voted: [] };
   private listeners = new Set<() => void>();
   private seq = 0;
+  private sweep: ReturnType<typeof setInterval> | null = null;
   // Cached snapshots — useSyncExternalStore requires stable references.
+  // Recomputed ONLY on mutation or when the active set actually changes,
+  // never during render (render-time mutation caused infinite update loops).
   private reportsCache: PulseReport[] = [];
-  private reportsCacheAt = 0;
-  private gamCache: GamSnapshot = { xp: 0, tier: "Newcomer", badges: [], reports: 0 };
+  private gamCache: GamSnapshot = EMPTY_GAM;
 
   constructor() {
     if (typeof window !== "undefined") this.gam = loadGam();
     this.reports = seedReports();
     this.recomputeGam();
+    this.refreshReports();
   }
 
   subscribe = (cb: () => void) => {
     this.listeners.add(cb);
-    return () => this.listeners.delete(cb);
+    // Slow sweep so expired reports disappear without render-time work.
+    if (!this.sweep && typeof window !== "undefined") {
+      this.sweep = setInterval(() => {
+        if (this.refreshReports()) this.listeners.forEach((l) => l());
+      }, 15000);
+    }
+    return () => {
+      this.listeners.delete(cb);
+      if (!this.listeners.size && this.sweep) {
+        clearInterval(this.sweep);
+        this.sweep = null;
+      }
+    };
   };
 
+  /** Rebuild the reports snapshot; returns true when the visible set changed. */
+  private refreshReports(): boolean {
+    const now = Date.now();
+    const next = [...activeReports(this.mine, now), ...activeReports(this.reports, now)];
+    const prev = this.reportsCache;
+    const same =
+      prev.length === next.length &&
+      prev.every((r, i) => r.id === next[i]!.id && r.upvotes === next[i]!.upvotes);
+    if (same) return false;
+    this.reportsCache = next;
+    return true;
+  }
+
   private emit() {
-    this.reportsCacheAt = 0; // invalidate
+    this.refreshReports();
     this.listeners.forEach((l) => l());
   }
 
@@ -159,15 +191,7 @@ class PulseFeed {
     }
   }
 
-  getReports = (): PulseReport[] => {
-    const now = Date.now();
-    // Re-filter at most once per second so the snapshot reference stays stable.
-    if (now - this.reportsCacheAt > 1000) {
-      this.reportsCache = [...activeReports(this.mine, now), ...activeReports(this.reports, now)];
-      this.reportsCacheAt = now;
-    }
-    return this.reportsCache;
-  };
+  getReports = (): PulseReport[] => this.reportsCache;
 
   getGamification = (): GamSnapshot => this.gamCache;
 
