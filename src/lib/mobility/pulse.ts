@@ -243,7 +243,7 @@ class PulseFeed {
 export const pulseFeed = new PulseFeed();
 
 export function usePulseReports() {
-  return useSyncExternalStore(pulseFeed.subscribe, pulseFeed.getReports, () => [] as PulseReport[]);
+  return useSyncExternalStore(pulseFeed.subscribe, pulseFeed.getReports, () => EMPTY_REPORTS);
 }
 
 export function useGamification() {
