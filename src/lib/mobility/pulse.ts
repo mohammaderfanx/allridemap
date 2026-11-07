@@ -115,30 +115,62 @@ function seedReports(): PulseReport[] {
 
 type GamSnapshot = { xp: number; tier: TrustTier; badges: string[]; reports: number };
 
+// Stable server snapshots — never allocate inside getServerSnapshot.
+const EMPTY_REPORTS: PulseReport[] = [];
+const EMPTY_GAM: GamSnapshot = { xp: 0, tier: "Newcomer", badges: [], reports: 0 };
+
 class PulseFeed {
   private reports: PulseReport[] = [];
   private mine: PulseReport[] = [];
   private gam: GamState = { xp: 0, reports: 0, upvotes: 0, voted: [] };
   private listeners = new Set<() => void>();
   private seq = 0;
+  private sweep: ReturnType<typeof setInterval> | null = null;
   // Cached snapshots — useSyncExternalStore requires stable references.
+  // Recomputed ONLY on mutation or when the active set actually changes,
+  // never during render (render-time mutation caused infinite update loops).
   private reportsCache: PulseReport[] = [];
-  private reportsCacheAt = 0;
-  private gamCache: GamSnapshot = { xp: 0, tier: "Newcomer", badges: [], reports: 0 };
+  private gamCache: GamSnapshot = EMPTY_GAM;
 
   constructor() {
     if (typeof window !== "undefined") this.gam = loadGam();
     this.reports = seedReports();
     this.recomputeGam();
+    this.refreshReports();
   }
 
   subscribe = (cb: () => void) => {
     this.listeners.add(cb);
-    return () => this.listeners.delete(cb);
+    // Slow sweep so expired reports disappear without render-time work.
+    if (!this.sweep && typeof window !== "undefined") {
+      this.sweep = setInterval(() => {
+        if (this.refreshReports()) this.listeners.forEach((l) => l());
+      }, 15000);
+    }
+    return () => {
+      this.listeners.delete(cb);
+      if (!this.listeners.size && this.sweep) {
+        clearInterval(this.sweep);
+        this.sweep = null;
+      }
+    };
   };
 
+  /** Rebuild the reports snapshot; returns true when the visible set changed. */
+  private refreshReports(): boolean {
+    const now = Date.now();
+    const next = [...activeReports(this.mine, now), ...activeReports(this.reports, now)];
+    const prev = this.reportsCache;
+    const same =
+      prev.length === next.length &&
+      prev.every((r, i) => r.id === next[i]!.id && r.upvotes === next[i]!.upvotes);
+    if (same) return false;
+    this.reportsCache = next;
+    return true;
+  }
+
   private emit() {
-    this.reportsCacheAt = 0; // invalidate
+    this.refreshReports();
     this.listeners.forEach((l) => l());
   }
 
@@ -159,17 +191,9 @@ class PulseFeed {
     }
   }
 
-  getReports = (): PulseReport[] => {
-    const now = Date.now();
-    return [...activeReports(this.mine, now), ...activeReports(this.reports, now)];
-  };
+  getReports = (): PulseReport[] => this.reportsCache;
 
-  getGamification = () => ({
-    xp: this.gam.xp,
-    tier: tierForXp(this.gam.xp),
-    badges: badgesFor(this.gam.xp, this.gam.reports, this.gam.upvotes),
-    reports: this.gam.reports,
-  });
+  getGamification = (): GamSnapshot => this.gamCache;
 
   addReport = (type: ReportType, lat: number, lng: number) => {
     const now = Date.now();
@@ -191,6 +215,7 @@ class PulseFeed {
       xp: this.gam.xp + XP_PER_REPORT,
       reports: this.gam.reports + 1,
     };
+    this.recomputeGam();
     this.persist();
     this.emit();
   };
@@ -206,6 +231,7 @@ class PulseFeed {
     const bump = (r: PulseReport) => (r.id === id ? { ...r, upvotes: r.upvotes + 1 } : r);
     this.reports = this.reports.map(bump);
     this.mine = this.mine.map(bump);
+    this.recomputeGam();
     this.persist();
     this.emit();
     return true;
@@ -217,14 +243,9 @@ class PulseFeed {
 export const pulseFeed = new PulseFeed();
 
 export function usePulseReports() {
-  return useSyncExternalStore(pulseFeed.subscribe, pulseFeed.getReports, () => [] as PulseReport[]);
+  return useSyncExternalStore(pulseFeed.subscribe, pulseFeed.getReports, () => EMPTY_REPORTS);
 }
 
 export function useGamification() {
-  return useSyncExternalStore(pulseFeed.subscribe, pulseFeed.getGamification, () => ({
-    xp: 0,
-    tier: "Newcomer" as TrustTier,
-    badges: [] as string[],
-    reports: 0,
-  }));
+  return useSyncExternalStore(pulseFeed.subscribe, pulseFeed.getGamification, () => EMPTY_GAM);
 }
