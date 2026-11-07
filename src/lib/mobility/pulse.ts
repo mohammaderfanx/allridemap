@@ -191,6 +191,7 @@ class PulseFeed {
       xp: this.gam.xp + XP_PER_REPORT,
       reports: this.gam.reports + 1,
     };
+    this.recomputeGam();
     this.persist();
     this.emit();
   };
@@ -206,6 +207,7 @@ class PulseFeed {
     const bump = (r: PulseReport) => (r.id === id ? { ...r, upvotes: r.upvotes + 1 } : r);
     this.reports = this.reports.map(bump);
     this.mine = this.mine.map(bump);
+    this.recomputeGam();
     this.persist();
     this.emit();
     return true;
