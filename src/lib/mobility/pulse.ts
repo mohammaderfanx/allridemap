@@ -161,15 +161,15 @@ class PulseFeed {
 
   getReports = (): PulseReport[] => {
     const now = Date.now();
-    return [...activeReports(this.mine, now), ...activeReports(this.reports, now)];
+    // Re-filter at most once per second so the snapshot reference stays stable.
+    if (now - this.reportsCacheAt > 1000) {
+      this.reportsCache = [...activeReports(this.mine, now), ...activeReports(this.reports, now)];
+      this.reportsCacheAt = now;
+    }
+    return this.reportsCache;
   };
 
-  getGamification = () => ({
-    xp: this.gam.xp,
-    tier: tierForXp(this.gam.xp),
-    badges: badgesFor(this.gam.xp, this.gam.reports, this.gam.upvotes),
-    reports: this.gam.reports,
-  });
+  getGamification = (): GamSnapshot => this.gamCache;
 
   addReport = (type: ReportType, lat: number, lng: number) => {
     const now = Date.now();
