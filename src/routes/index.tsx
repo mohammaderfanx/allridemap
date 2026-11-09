@@ -422,7 +422,7 @@ function Home() {
         >
           <span className="h-1.5 w-10 rounded-full bg-muted-foreground/40" />
         </button>
-        <div className="px-4 pb-2 pt-3">
+        <div className="shrink-0 px-4 pb-2 pt-3">
           {dest ? (
             <div className="flex items-baseline justify-between">
               <h2 className="min-w-0 truncate text-base font-bold text-foreground">
@@ -474,7 +474,7 @@ function Home() {
         </div>
 
         {dest && delayed && (
-          <div className="mx-3 mb-2 flex items-start gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 p-2.5">
+          <div className="mx-3 mb-2 flex shrink-0 items-start gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 p-2.5">
             <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
             <div className="min-w-0 flex-1 text-xs">
               <div className="font-bold text-foreground">{delayed.alert!.header}</div>
@@ -523,7 +523,7 @@ function Home() {
             })}
           </div>
         )}
-        <div className="flex-1 space-y-2 overflow-y-auto px-3 pb-4">
+        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-3 pb-4">
           {!dest && (
             <>
               <h3 className="flex items-center gap-1.5 px-1 pt-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
