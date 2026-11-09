@@ -200,14 +200,14 @@ function Home() {
 
       {/* Search card */}
       <div className="absolute left-3 right-16 top-3 z-10 md:right-auto md:w-[380px]">
-        <div className="rounded-3xl border border-border/60 bg-frost p-3 shadow-lg backdrop-blur-xl">
+        <div className="rounded-3xl border border-border/60 bg-frost p-3 shadow-float backdrop-blur-xl">
           <div className="mb-2 flex items-center justify-between px-1">
             <span className="text-lg font-extrabold tracking-tight text-foreground">
               All<span className="text-primary">Ride</span>
             </span>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-0.5">
               <span
-                className="hidden items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary sm:flex"
+                className="hidden items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary sm:flex mr-1"
                 title={`${gam.xp} XP · ${gam.badges.length} badges`}
               >
                 <Sparkles className="h-3 w-3" />
@@ -221,7 +221,7 @@ function Home() {
                 }}
                 aria-label="Drop a community report on the map"
                 aria-pressed={reportMode}
-                className={reportMode ? "text-primary" : "text-muted-foreground hover:text-foreground"}
+                className={`icon-btn ${reportMode ? "icon-btn-on" : ""}`}
               >
                 <Megaphone className="h-4 w-4" />
               </button>
@@ -229,7 +229,7 @@ function Home() {
                 onClick={() => setPulseOn(!pulseOn)}
                 aria-label={pulseOn ? "Hide community pulse" : "Show community pulse"}
                 aria-pressed={pulseOn}
-                className={pulseOn ? "text-primary" : "text-muted-foreground hover:text-foreground"}
+                className={`icon-btn ${pulseOn ? "icon-btn-on" : ""}`}
               >
                 <Radio className="h-4 w-4" />
               </button>
@@ -237,27 +237,27 @@ function Home() {
                 onClick={() => setHeatOn(!heatOn)}
                 aria-label={heatOn ? "Hide demand forecast" : "Show demand forecast"}
                 aria-pressed={heatOn}
-                className={heatOn ? "text-primary" : "text-muted-foreground hover:text-foreground"}
+                className={`icon-btn ${heatOn ? "icon-btn-on" : ""}`}
               >
                 <Flame className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setDark(!dark)}
                 aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-                className="text-muted-foreground hover:text-foreground"
+                className="icon-btn"
               >
                 {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </button>
               <Link
                 to="/intercity"
-                className="text-muted-foreground hover:text-foreground"
+                className="icon-btn"
                 aria-label="Intercity trips"
               >
                 <TrainFront className="h-4 w-4" />
               </Link>
               <Link
                 to="/about"
-                className="text-muted-foreground hover:text-foreground"
+                className="icon-btn"
                 aria-label="About"
               >
                 <Info className="h-4 w-4" />
@@ -308,7 +308,7 @@ function Home() {
             <button
               aria-label="Swap"
               onClick={() => to && set({ from: to, to: from })}
-              className="rounded-full border border-border bg-card p-2 text-muted-foreground hover:text-foreground"
+              className="rounded-full border border-border bg-card p-2 text-muted-foreground transition-transform hover:text-foreground active:rotate-180"
             >
               <ArrowUpDown className="h-4 w-4" />
             </button>
@@ -340,11 +340,25 @@ function Home() {
             </p>
           )}
         </div>
+        {/* Live micro-widgets */}
+        <div className="mt-2 flex gap-1.5 overflow-x-auto no-scrollbar">
+          <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap rounded-full border border-border/60 bg-frost px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur-xl">
+            <Wind className="h-3 w-3 text-primary" /> AQI 38 · Good
+          </span>
+          <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap rounded-full border border-border/60 bg-frost px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur-xl">
+            🛴 {fleet.filter((v) => v.mode === "scooter").length} scooters nearby
+          </span>
+          {pulseOn && pulseReports.length > 0 && (
+            <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap rounded-full border border-border/60 bg-frost px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur-xl">
+              <Radio className="h-3 w-3 text-primary" /> {pulseReports.length} live reports
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Report type picker after a map tap */}
       {reportDraft && (
-        <div className="absolute left-1/2 top-1/2 z-20 w-[280px] -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-border/60 bg-frost p-3 shadow-lg backdrop-blur-xl">
+        <div className="absolute left-1/2 top-1/2 z-20 w-[280px] -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-border/60 bg-frost p-3 shadow-float backdrop-blur-xl animate-pop">
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-sm font-bold text-foreground">What's happening here?</h3>
             <button
@@ -364,7 +378,7 @@ function Home() {
                   hapticDoublePulse();
                   setReportDraft(null);
                 }}
-                className="flex items-center gap-2 rounded-xl bg-card px-2.5 py-2 text-left text-xs font-semibold text-foreground transition-colors hover:bg-accent"
+                className="flex items-center gap-2 rounded-xl bg-card px-2.5 py-2.5 text-left text-xs font-semibold text-foreground transition-all hover:bg-accent active:scale-95"
               >
                 <span aria-hidden>{REPORT_META[t].emoji}</span>
                 {REPORT_META[t].label}
@@ -377,24 +391,9 @@ function Home() {
         </div>
       )}
 
-      {/* Live micro-widgets */}
-      <div className="absolute left-3 top-3 z-[5] mt-[188px] flex flex-col gap-1.5 md:left-auto md:right-3 md:top-20 md:mt-0">
-        <span className="flex items-center gap-1.5 self-start rounded-full border border-border/60 bg-frost px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur-xl">
-          <Wind className="h-3 w-3 text-primary" /> AQI 38 · Good
-        </span>
-        <span className="flex items-center gap-1.5 self-start rounded-full border border-border/60 bg-frost px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur-xl">
-          🛴 {fleet.filter((v) => v.mode === "scooter").length} scooters nearby
-        </span>
-        {pulseOn && pulseReports.length > 0 && (
-          <span className="flex items-center gap-1.5 self-start rounded-full border border-border/60 bg-frost px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur-xl">
-            <Radio className="h-3 w-3 text-primary" /> {pulseReports.length} live reports
-          </span>
-        )}
-      </div>
-
       {/* Results sheet */}
       <section
-        className={`absolute inset-x-0 bottom-0 z-10 flex flex-col rounded-t-3xl border border-border/60 bg-frost shadow-sheet backdrop-blur-xl transition-[max-height] duration-300 md:inset-x-auto md:bottom-3 md:right-3 md:top-20 md:w-[400px] md:rounded-3xl ${
+        className={`absolute inset-x-0 bottom-0 z-10 flex flex-col rounded-t-3xl border border-border/60 bg-frost shadow-sheet backdrop-blur-xl transition-[max-height] duration-500 ease-spring md:inset-x-auto md:bottom-3 md:right-3 md:top-20 md:w-[400px] md:rounded-3xl ${
           expanded ? "max-h-[62dvh] md:max-h-none" : "max-h-[96px] md:max-h-none"
         }`}
       >
@@ -423,7 +422,7 @@ function Home() {
         >
           <span className="h-1.5 w-10 rounded-full bg-muted-foreground/40" />
         </button>
-        <div className="px-4 pb-2 pt-3">
+        <div className="shrink-0 px-4 pb-2 pt-3">
           {dest ? (
             <div className="flex items-baseline justify-between">
               <h2 className="min-w-0 truncate text-base font-bold text-foreground">
@@ -441,12 +440,12 @@ function Home() {
           ) : (
             <h2 className="text-base font-bold text-foreground">Where to?</h2>
           )}
-          <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
+          <div className="no-scrollbar mt-2 flex gap-1.5 overflow-x-auto pb-1">
             {ALL_MODES.map((m) => (
               <button
                 key={m}
                 onClick={() => toggleMode(m)}
-                className={`flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                className={`flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 ${
                   modes.includes(m)
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border bg-card text-muted-foreground"
@@ -475,7 +474,7 @@ function Home() {
         </div>
 
         {dest && delayed && (
-          <div className="mx-3 mb-2 flex items-start gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 p-2.5">
+          <div className="mx-3 mb-2 flex shrink-0 items-start gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 p-2.5">
             <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
             <div className="min-w-0 flex-1 text-xs">
               <div className="font-bold text-foreground">{delayed.alert!.header}</div>
@@ -497,7 +496,7 @@ function Home() {
           </div>
         )}
         {dest && road.alternatives.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto px-3 pb-2">
+          <div className="no-scrollbar flex shrink-0 gap-2 overflow-x-auto px-3 pb-2">
             {road.alternatives.map((r, i) => {
               const fastestAlt = Math.min(...road.alternatives.map((x) => x.durationS));
               const shortestAlt = Math.min(...road.alternatives.map((x) => x.distanceM));
@@ -524,7 +523,7 @@ function Home() {
             })}
           </div>
         )}
-        <div className="flex-1 space-y-2 overflow-y-auto px-3 pb-4">
+        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-3 pb-4">
           {!dest && (
             <>
               <h3 className="flex items-center gap-1.5 px-1 pt-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
