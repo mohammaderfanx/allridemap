@@ -440,7 +440,7 @@ function Home() {
           ) : (
             <h2 className="text-base font-bold text-foreground">Where to?</h2>
           )}
-          <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
+          <div className="no-scrollbar mt-2 flex gap-1.5 overflow-x-auto pb-1">
             {ALL_MODES.map((m) => (
               <button
                 key={m}
@@ -496,7 +496,7 @@ function Home() {
           </div>
         )}
         {dest && road.alternatives.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto px-3 pb-2">
+          <div className="no-scrollbar flex shrink-0 gap-2 overflow-x-auto px-3 pb-2">
             {road.alternatives.map((r, i) => {
               const fastestAlt = Math.min(...road.alternatives.map((x) => x.durationS));
               const shortestAlt = Math.min(...road.alternatives.map((x) => x.distanceM));
