@@ -43,6 +43,13 @@
       "when": 1793916841397,
       "tag": "0005_create_phase7_pulse_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794556519668,
+      "tag": "0006_tighten_corridor_and_reports_policies",
+      "breakpoints": true
     }
   ]
 }

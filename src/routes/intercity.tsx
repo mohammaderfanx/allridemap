@@ -1,3 +1,4 @@
+import { getCorridorReliability } from "@/lib/mobility/corridors.functions";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
@@ -17,7 +18,6 @@ import {
   Luggage,
   BatteryCharging,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import {
   CITIES,
   MODE_NAME,
@@ -77,13 +77,7 @@ const dur = (ms: number) => {
 function useReliability() {
   const [r, setR] = useState<Record<string, number>>({});
   useEffect(() => {
-    supabase
-      .from("intercity_corridor_routes")
-      .select("corridor_code, realtime_reliability_score")
-      .then(({ data }) => {
-        if (data)
-          setR(Object.fromEntries(data.map((d) => [d.corridor_code, Number(d.realtime_reliability_score)])));
-      });
+    getCorridorReliability().then(setR).catch(() => {});
   }, []);
   return r;
 }
